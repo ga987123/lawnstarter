@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Infrastructure\Http\Controllers;
+
+use App\Application\Services\StatisticsService;
+use Illuminate\Http\JsonResponse;
+
+final class StatisticsController
+{
+    public function __construct(
+        private readonly StatisticsService $statisticsService,
+    ) {}
+
+    public function __invoke(): JsonResponse
+    {
+        $statistics = $this->statisticsService->getStatistics();
+
+        return response()->json([
+            'data' => $statistics->toArray(),
+        ]);
+    }
+}

@@ -1,0 +1,10 @@
+includes:
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+
+parameters:
+    paths:
+        - app
+    level: 8
+    excludePaths:
+        - app/Infrastructure/Http/Requests/*
+    reportUnmatchedIgnoredErrors: false

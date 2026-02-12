@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+Thumbs.db
+
+prompts.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+

@@ -1,0 +1,185 @@
+openapi: 3.1.0
+info:
+  title: SWAPI Proxy API
+  description: |
+    A proxy API for the Star Wars API (swapi.tech).
+    Provides normalized responses and query statistics.
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      tags:
+        - System
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                required:
+                  - status
+
+  /swapi/people/{id}:
+    get:
+      summary: Get a Star Wars person by ID
+      operationId: getPerson
+      tags:
+        - SWAPI
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The SWAPI person ID
+      responses:
+        "200":
+          description: Person found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Person"
+        "404":
+          description: Person not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+        "502":
+          description: SWAPI unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /statistics:
+    get:
+      summary: Get query statistics
+      operationId: getStatistics
+      tags:
+        - Statistics
+      responses:
+        "200":
+          description: Computed statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/QueryStatistics"
+
+components:
+  schemas:
+    Person:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Luke Skywalker
+        height:
+          type: string
+          example: "172"
+        mass:
+          type: string
+          example: "77"
+        birth_year:
+          type: string
+          example: 19BBY
+        gender:
+          type: string
+          example: male
+      required:
+        - id
+        - name
+        - height
+        - mass
+        - birth_year
+        - gender
+
+    QueryStatistics:
+      type: object
+      properties:
+        top_queries:
+          type: array
+          items:
+            type: object
+            properties:
+              person_id:
+                type: integer
+              count:
+                type: integer
+              percentage:
+                type: number
+                format: float
+        average_response_time_ms:
+          type: number
+          format: float
+        popular_hours:
+          type: object
+          description: "Map of hour (0-23) to query count"
+          additionalProperties:
+            type: integer
+        total_queries:
+          type: integer
+        computed_at:
+          type: string
+          format: date-time
+
+    ProblemDetails:
+      type: object
+      description: RFC 9457 Problem Details
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+      required:
+        - type
+        - title
+        - status
+        - detail
+
+    ValidationError:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetails"
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
