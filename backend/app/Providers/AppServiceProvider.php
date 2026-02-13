@@ -22,6 +22,9 @@ final class AppServiceProvider extends ServiceProvider
             timeout: (int) config('services.swapi.timeout'),
             retryTimes: (int) config('services.swapi.retry_times'),
             retrySleep: (int) config('services.swapi.retry_sleep'),
+            circuitFailureThreshold: (int) config('services.swapi.circuit_failure_threshold'),
+            circuitTimeoutSeconds: (int) config('services.swapi.circuit_timeout_seconds'),
+            circuitHalfOpenSuccessThreshold: (int) config('services.swapi.circuit_half_open_success_threshold'),
         ));
 
         $this->app->bind(QueryLogRepositoryInterface::class, RedisQueryLogRepository::class);

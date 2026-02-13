@@ -9,6 +9,9 @@ return [
         'timeout' => (int) env('SWAPI_TIMEOUT', 5),
         'retry_times' => (int) env('SWAPI_RETRY_TIMES', 2),
         'retry_sleep' => (int) env('SWAPI_RETRY_SLEEP', 100),
+        'circuit_failure_threshold' => (int) env('SWAPI_CIRCUIT_FAILURE_THRESHOLD', 5),
+        'circuit_timeout_seconds' => (int) env('SWAPI_CIRCUIT_TIMEOUT_SECONDS', 60),
+        'circuit_half_open_success_threshold' => (int) env('SWAPI_CIRCUIT_HALF_OPEN_SUCCESS_THRESHOLD', 2),
     ],
 
     'statistics' => [

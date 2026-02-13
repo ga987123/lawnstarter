@@ -23,7 +23,9 @@ Route::get('/docs', [SwaggerController::class, 'ui']);
 
 Route::get('/health', HealthController::class);
 
+Route::get('/swapi/people', [SwapiController::class, 'searchPeople']);
 Route::get('/swapi/people/{id}', [SwapiController::class, 'show'])
     ->whereNumber('id');
+Route::get('/swapi/films', [SwapiController::class, 'searchFilms']);
 
 Route::get('/statistics', StatisticsController::class);
