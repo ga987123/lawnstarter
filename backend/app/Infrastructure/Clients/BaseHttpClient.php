@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Gateways;
+namespace App\Infrastructure\Clients;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -10,7 +10,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
-abstract class BaseHttpGateway
+abstract class BaseHttpClient
 {
     public function __construct(
         protected readonly string $baseUrl,
@@ -82,7 +82,6 @@ abstract class BaseHttpGateway
 
             return $response;
         } catch (\Throwable $e) {
-            // Only record failure for server errors (>= 500) or invalid status codes (<= 100)
             if ($this->shouldRecordFailure($e, $notFoundStatus)) {
                 $circuitBreaker->recordFailure();
             }
@@ -108,7 +107,6 @@ abstract class BaseHttpGateway
 
         if ($e instanceof RequestException && $e->response !== null) {
             $status = $e->response->status();
-            // Do not record for client errors (4xx)
             return $status >= 500 || $status <= 100;
         }
 
@@ -137,12 +135,10 @@ abstract class BaseHttpGateway
             return $this->createUnavailableException('Request failed: ' . $e->getMessage(), $e);
         }
 
-        // Handle ConnectionException
         if ($e instanceof ConnectionException) {
             return $this->createUnavailableException('Could not connect to service.', $e);
         }
 
-        // Handle all other exceptions
         return $this->createUnavailableException('Request failed: ' . $e->getMessage(), $e);
     }
 

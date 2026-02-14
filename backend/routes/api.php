@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Infrastructure\Http\Controllers\HealthController;
-use App\Infrastructure\Http\Controllers\StatisticsController;
-use App\Infrastructure\Http\Controllers\SwaggerController;
-use App\Infrastructure\Http\Controllers\SwapiController;
+use App\Http\Controllers\StatisticsController;
+use App\Http\Controllers\HealthController;
+use App\Http\Controllers\SwaggerController;
+use App\Http\Controllers\StarWarsController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => response()->json([
+Route::get('/', fn() => response()->json([
     'name' => 'SWAPI Proxy API',
     'docs' => '/api/docs',
     'endpoints' => [
@@ -23,9 +23,9 @@ Route::get('/docs', [SwaggerController::class, 'ui']);
 
 Route::get('/health', HealthController::class);
 
-Route::get('/swapi/people', [SwapiController::class, 'searchPeople']);
-Route::get('/swapi/people/{id}', [SwapiController::class, 'show'])
+Route::get('/swapi/people', [StarWarsController::class, 'searchPeople']);
+Route::get('/swapi/people/{id}', [StarWarsController::class, 'getPerson'])
     ->whereNumber('id');
-Route::get('/swapi/films', [SwapiController::class, 'searchFilms']);
+Route::get('/swapi/films', [StarWarsController::class, 'searchFilms']);
 
 Route::get('/statistics', StatisticsController::class);

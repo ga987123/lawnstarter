@@ -1,41 +1,55 @@
 # Backend - SWAPI Proxy API
 
-PHP 8.4 + Laravel 12 API-only application that proxies the Star Wars API (swapi.tech) and provides query statistics.
+PHP 8.4 + Laravel 12 API-only application that proxies the Star Wars API (swapi.tech), provides search with pagination, query statistics, and full observability.
+
+## Architecture
 
 ### Layer Responsibilities
 
-| Layer          | Responsibility                                   |
-|----------------|--------------------------------------------------|
-| Domain         | DTOs, interfaces, exceptions. No framework deps. |
-| Application    | Services, events, jobs, commands. Orchestration. |
-| Infrastructure | Controllers, gateways, repositories. I/O.        |
+| Layer          | Responsibility                                           |
+| -------------- | -------------------------------------------------------- |
+| Domain         | DTOs, interfaces, exceptions. No framework dependencies. |
+| Application    | Services, events, listeners, jobs. Orchestration layer.  |
+| Http           | Controllers, middleware, responses. HTTP-specific I/O.   |
+| Infrastructure | Gateways, repositories, logging. External integrations.  |
 
 ### Folder Structure
 
 ```
 app/
-├── Domain/                    # Pure domain logic (no framework deps)
+├── Domain/                         # Pure domain logic (no framework deps)
+│   ├── Contracts/
+│   │   └── AppLoggerInterface      # On-demand logger interface
 │   ├── Swapi/
-│   │   ├── Contracts/         # SwapiGatewayInterface
-│   │   ├── DTOs/              # PersonDto
-│   │   └── Exceptions/        # SwapiNotFoundException, SwapiUnavailableException
+│   │   ├── Contracts/              # SwapiClientInterface
+│   │   ├── DTOs/                   # PersonDto, FilmDto, PaginatedResultDto
+│   │   └── Exceptions/             # SwapiNotFoundException, SwapiUnavailableException
 │   └── Statistics/
-│       ├── Contracts/         # QueryLogRepositoryInterface
-│       └── DTOs/              # QueryStatisticsDto
-├── Application/               # Use cases & orchestration
-│   ├── Services/              # SwapiService, StatisticsService
-│   ├── Events/                # QueryExecuted
-│   ├── Listeners/             # RecordQueryMetrics (queued)
-│   ├── Jobs/                  # RecomputeStatisticsJob
-│   └── Console/Commands/      # ComputeStatisticsCommand
-├── Infrastructure/            # Framework & external integrations
-│   ├── Gateways/              # SwapiHttpGateway
-│   ├── Repositories/          # RedisQueryLogRepository
-│   └── Http/
-│       ├── Controllers/       # HealthController, SwapiController, StatisticsController
-│       └── Requests/          # GetPersonRequest
+│       ├── Contracts/              # QueryLogRepositoryInterface
+│       └── DTOs/                   # QueryStatisticsDto
+├── Application/                    # Use cases & orchestration
+│   ├── Services/                   # StarwarsService, StatisticsService
+│   ├── Events/                     # QueryExecuted, SearchQueryExecuted
+│   ├── Listeners/                  # RecordQueryMetrics, RecordSearchMetrics (queued)
+│   ├── Jobs/                       # RecomputeStatisticsJob
+│   └── Console/Commands/           # ComputeStatisticsCommand
+├── Http/                           # HTTP layer
+│   ├── Controllers/                # HealthController, StarWarsController, StatisticsController, SwaggerController
+│   ├── Middleware/                  # RequestLogMiddleware
+│   └── Responses/                  # ApiResponse (standard + paginated)
+├── Infrastructure/                 # Framework & external integrations
+│   ├── Clients/
+│   │   ├── BaseHttpClient          # Shared HTTP client with retry logic
+│   │   ├── CircuitBreaker          # Redis-backed circuit breaker
+│   │   └── Swapi/
+│   │       ├── SwapiHttpClients    # SWAPI HTTP gateway implementation
+│   │       └── SwapiResponseWrapper# SWAPI response parser with pagination metadata
+│   ├── Logging/
+│   │   └── LaravelAppLogger        # AppLoggerInterface implementation (Monolog)
+│   └── Repositories/
+│       └── RedisQueryLogRepository # Query/search statistics storage
 └── Providers/
-    └── AppServiceProvider.php # Interface bindings
+    └── AppServiceProvider           # Interface bindings & event wiring
 ```
 
 ## API Endpoints
@@ -45,48 +59,92 @@ app/
 Returns service health status.
 
 **Response 200:**
+
 ```json
 { "status": "ok" }
 ```
 
-### GET /api/swapi/people/{id}
+### GET /api/swapi/people?name={query}
 
-Fetches a Star Wars person from SWAPI and returns a normalized response.
+Searches for Star Wars people. Supports pagination and optional name filtering.
 
 **Parameters:**
+
+- `name` (query, string, optional) - Filter people by name
+
+**Response 200:**
+
+```json
+{
+    "data": [
+        {
+            "id": 1,
+            "name": "Luke Skywalker",
+            "height": "172",
+            "mass": "77",
+            "birth_year": "19BBY",
+            "gender": "male"
+        }
+    ],
+    "meta": {
+        "current_page": 1,
+        "total_pages": 9,
+        "total_records": 82,
+        "has_next_page": true
+    }
+}
+```
+
+### GET /api/swapi/people/{id}
+
+Fetches a single Star Wars person by ID.
+
+**Parameters:**
+
 - `id` (path, integer, min: 1) - The SWAPI person ID
 
 **Response 200:**
+
 ```json
 {
-  "data": {
-    "id": 1,
-    "name": "Luke Skywalker",
-    "height": "172",
-    "mass": "77",
-    "birth_year": "19BBY",
-    "gender": "male"
-  }
+    "data": {
+        "id": 1,
+        "name": "Luke Skywalker",
+        "height": "172",
+        "mass": "77",
+        "birth_year": "19BBY",
+        "gender": "male"
+    }
 }
 ```
 
-**Response 404:**
-```json
-{
-  "type": "https://httpstatuses.com/404",
-  "title": "Not Found",
-  "status": 404,
-  "detail": "Person with ID 999 was not found in SWAPI."
-}
-```
+### GET /api/swapi/films?name={query}
 
-**Response 502:**
+Searches for Star Wars films. Supports pagination and optional name filtering.
+
+**Parameters:**
+
+- `name` (query, string, optional) - Filter films by title
+
+**Response 200:**
+
 ```json
 {
-  "type": "https://httpstatuses.com/502",
-  "title": "Bad Gateway",
-  "status": 502,
-  "detail": "SWAPI service is currently unavailable."
+    "data": [
+        {
+            "id": 1,
+            "title": "A New Hope",
+            "episode_id": 4,
+            "director": "George Lucas",
+            "release_date": "1977-05-25"
+        }
+    ],
+    "meta": {
+        "current_page": 1,
+        "total_pages": 1,
+        "total_records": 6,
+        "has_next_page": false
+    }
 }
 ```
 
@@ -95,48 +153,180 @@ Fetches a Star Wars person from SWAPI and returns a normalized response.
 Returns query statistics, recomputed every 5 minutes.
 
 **Response 200:**
+
 ```json
 {
-  "data": {
-    "top_queries": [
-      { "person_id": 1, "count": 42, "percentage": 35.0 }
-    ],
-    "average_response_time_ms": 150.25,
-    "popular_hours": { "0": 5, "1": 3, "14": 28 },
-    "total_queries": 120,
-    "computed_at": "2026-01-15T10:30:00+00:00"
-  }
+    "data": {
+        "top_queries": [{ "person_id": 1, "count": 42, "percentage": 35.0 }],
+        "average_response_time_ms": 150.25,
+        "popular_hours": { "0": 5, "1": 3, "14": 28 },
+        "total_queries": 120,
+        "computed_at": "2026-01-15T10:30:00+00:00"
+    }
 }
 ```
 
+**Error Responses (all endpoints):**
 
-### Redis Keys
-
-| Key                  | Type       | Purpose                              |
-|----------------------|------------|--------------------------------------|
-| `swapi:query_log`    | List       | JSON entries with query metadata     |
-| `swapi:query_counts` | Sorted Set | Person ID -> query count             |
-| `swapi:statistics`   | String     | Cached computed statistics (TTL 6m)  |
-
-## Error Handling
+| HTTP Status | When                           |
+| ----------- | ------------------------------ |
+| 404         | Person/resource not found      |
+| 422         | Invalid request parameters     |
+| 502         | SWAPI connection/request error |
 
 All errors follow **RFC 9457 Problem Details** format:
 
 ```json
 {
-  "type": "https://httpstatuses.com/{status}",
-  "title": "Human-readable title",
-  "status": 422,
-  "detail": "Detailed error description",
-  "errors": {}
+    "type": "https://httpstatuses.com/{status}",
+    "title": "Human-readable title",
+    "status": 422,
+    "detail": "Detailed error description",
+    "errors": {}
 }
 ```
 
-| Exception                | HTTP Status | When                          |
-|--------------------------|-------------|-------------------------------|
-| `SwapiNotFoundException` | 404         | Person not found in SWAPI     |
-| `SwapiUnavailableException` | 502     | SWAPI connection/request error|
-| `ValidationException`    | 422         | Invalid request parameters    |
+---
+
+## Observability
+
+The application has three observability layers: **request logging**, **application logging**, and **exception reporting**.
+
+### 1. Request Logging (Middleware)
+
+Every API request is automatically logged by `RequestLogMiddleware`, which is registered globally on the `api` middleware group in `bootstrap/app.php`.
+
+Each log entry (written to `storage/logs/requests.log` via the `request` log channel) includes:
+
+| Field         | Description                   |
+| ------------- | ----------------------------- |
+| `method`      | HTTP method (GET, POST, etc.) |
+| `uri`         | Full request URI with query   |
+| `path`        | Request path                  |
+| `ip`          | Client IP address             |
+| `status`      | Response HTTP status code     |
+| `duration_ms` | Total request duration (ms)   |
+
+### 2. Application Logger (On-demand)
+
+An injectable `AppLoggerInterface` (bound to `LaravelAppLogger`) is available for on-demand logging throughout the codebase. It provides `info`, `error`, `warning`, and `debug` methods, all routed to the default `stack` log channel (`storage/logs/laravel.log`).
+
+Usage example:
+
+```php
+public function __construct(
+    private readonly AppLoggerInterface $logger,
+) {}
+
+public function doSomething(): void
+{
+    $this->logger->info('Operation started', ['key' => 'value']);
+    $this->logger->error('Something failed', ['error' => $e->getMessage()]);
+}
+```
+
+The logger is already injected into `StarwarsService` and `SwapiHttpClients` (the SWAPI gateway), logging HTTP calls, response times, and errors.
+
+### 3. Exception Reporting
+
+All uncaught exceptions are reported via `bootstrap/app.php`'s `withExceptions` block. Each caught exception is logged to `Log::error()` with:
+
+- Exception class name
+- File and line number
+- Full stack trace
+
+---
+
+## Redis Usage
+
+Redis serves three purposes in this application:
+
+### 1. Query & Search Statistics
+
+All detail and search queries are recorded in Redis for analytics.
+
+| Key                   | Type       | Purpose                                |
+| --------------------- | ---------- | -------------------------------------- |
+| `swapi:query_log`     | List       | JSON entries for person detail queries |
+| `swapi:query_counts`  | Sorted Set | Person ID -> detail query count        |
+| `swapi:search_log`    | List       | JSON entries for search queries        |
+| `swapi:search_counts` | Sorted Set | `{type}:{query}` -> search query count |
+| `swapi:statistics`    | String     | Cached computed statistics (TTL 6 min) |
+
+**Detail query log entry:**
+
+```json
+{
+    "person_id": 1,
+    "response_time_ms": 142.5,
+    "timestamp": "2026-02-13T10:30:00+00:00",
+    "hour": 10
+}
+```
+
+**Search query log entry:**
+
+```json
+{
+    "search_type": "people",
+    "query": "luke",
+    "response_time_ms": 320.1,
+    "result_count": 3,
+    "timestamp": "2026-02-13T10:30:00+00:00",
+    "hour": 10
+}
+```
+
+### 2. Circuit Breaker State
+
+The `CircuitBreaker` class stores its state in Redis keys prefixed with `swapi:circuit`, tracking failure counts and state transitions (closed -> open -> half-open) to protect the application from cascading failures when SWAPI is unavailable.
+
+### 3. Queue Backend
+
+Redis also serves as the queue driver (configurable via `QUEUE_CONNECTION`), used by RabbitMQ-compatible listeners to process jobs asynchronously.
+
+---
+
+## RabbitMQ / Queue Usage
+
+The application uses Laravel's event-driven architecture with **queued listeners** to process statistics asynchronously, decoupling the API response from the metrics recording.
+
+### Flow
+
+```
+API Request
+    │
+    ▼
+StarwarsService (dispatches event)
+    │
+    ├── QueryExecuted         → when a person detail is fetched
+    └── SearchQueryExecuted   → when a search (people/films) is executed
+            │
+            ▼
+    Queued Listener (processed via queue worker)
+            │
+            ├── RecordQueryMetrics   → calls RedisQueryLogRepository::recordQuery()
+            └── RecordSearchMetrics  → calls RedisQueryLogRepository::recordSearchQuery()
+                    │
+                    ▼
+              Redis (statistics stored)
+```
+
+### Events
+
+| Event                 | Dispatched when              | Payload                                                |
+| --------------------- | ---------------------------- | ------------------------------------------------------ |
+| `QueryExecuted`       | Person detail fetched by ID  | `personId`, `responseTimeMs`                           |
+| `SearchQueryExecuted` | People/films search executed | `searchType`, `query`, `responseTimeMs`, `resultCount` |
+
+### Listeners
+
+Both listeners implement `ShouldQueue`, meaning they are pushed to the queue (RabbitMQ) and processed by a background worker instead of blocking the HTTP response.
+
+| Listener              | Handles               | Action                        |
+| --------------------- | --------------------- | ----------------------------- |
+| `RecordQueryMetrics`  | `QueryExecuted`       | Records detail query in Redis |
+| `RecordSearchMetrics` | `SearchQueryExecuted` | Records search query in Redis |
 
 ## Testing
 
@@ -167,14 +357,22 @@ docker compose exec backend ./vendor/bin/rector process --dry-run
 
 Key environment variables (see `.env.example`):
 
-| Variable           | Default                          | Description              |
-|--------------------|----------------------------------|--------------------------|
-| `REDIS_HOST`       | `redis`                          | Redis hostname           |
-| `CACHE_STORE`      | `redis`                          | Cache driver             |
-| `QUEUE_CONNECTION` | `redis`                          | Queue driver             |
-| `SWAPI_BASE_URL`   | `https://www.swapi.tech/api`     | SWAPI base URL           |
-| `SWAPI_TIMEOUT`    | `5`                              | HTTP timeout (seconds)   |
-| `SWAPI_RETRY_TIMES`| `2`                              | Number of retries        |
+| Variable                          | Default                      | Description                        |
+| --------------------------------- | ---------------------------- | ---------------------------------- |
+| `REDIS_HOST`                      | `redis`                      | Redis hostname                     |
+| `CACHE_STORE`                     | `redis`                      | Cache driver                       |
+| `QUEUE_CONNECTION`                | `redis`                      | Queue driver (RabbitMQ-compatible) |
+| `SWAPI_BASE_URL`                  | `https://www.swapi.tech/api` | SWAPI base URL                     |
+| `SWAPI_TIMEOUT`                   | `5`                          | HTTP timeout (seconds)             |
+| `SWAPI_RETRY_TIMES`               | `2`                          | Number of retries                  |
+| `SWAPI_CIRCUIT_FAILURE_THRESHOLD` | `5`                          | Failures before circuit opens      |
+| `SWAPI_CIRCUIT_TIMEOUT_SECONDS`   | `60`                         | Seconds before circuit half-opens  |
+| `STATISTICS_QUERY_LOG_KEY`        | `swapi:query_log`            | Redis key for detail query log     |
+| `STATISTICS_QUERY_COUNTS_KEY`     | `swapi:query_counts`         | Redis key for detail query counts  |
+| `STATISTICS_SEARCH_LOG_KEY`       | `swapi:search_log`           | Redis key for search query log     |
+| `STATISTICS_SEARCH_COUNTS_KEY`    | `swapi:search_counts`        | Redis key for search query counts  |
+| `STATISTICS_CACHE_KEY`            | `swapi:statistics`           | Redis key for cached statistics    |
+| `STATISTICS_CACHE_TTL`            | `360`                        | Statistics cache TTL (seconds)     |
 
 ## OpenAPI Specification
 

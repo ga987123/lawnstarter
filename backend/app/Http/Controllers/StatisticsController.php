@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Http\Controllers;
+namespace App\Http\Controllers;
 
 use App\Application\Services\StatisticsService;
 use Illuminate\Http\JsonResponse;

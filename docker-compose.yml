@@ -29,7 +29,10 @@ services:
       - APP_ENV=local
       - APP_DEBUG=true
       - APP_KEY=base64:dGhpc2lzYXRlc3RrZXlmb3JkZXZlbG9wbWVudG9ubHk=
-      - CACHE_STORE=file
+      - CACHE_STORE=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=null
       - QUEUE_CONNECTION=rabbitmq
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
@@ -38,6 +41,8 @@ services:
       - RABBITMQ_VHOST=/
       - SWAPI_BASE_URL=https://www.swapi.tech/api
     depends_on:
+      redis:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
@@ -48,22 +53,30 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: development
-    command: php artisan queue:work rabbitmq --sleep=3 --tries=3 --max-time=3600
+    command: >
+      sh -c "php artisan rabbitmq:queue-declare default
+      && exec php artisan queue:work rabbitmq --sleep=3 --tries=3 --max-time=3600"
     volumes:
       - ./backend:/var/www/html
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
       - APP_KEY=base64:dGhpc2lzYXRlc3RrZXlmb3JkZXZlbG9wbWVudG9ubHk=
-      - CACHE_STORE=file
+      - CACHE_STORE=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=null
       - QUEUE_CONNECTION=rabbitmq
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
       - RABBITMQ_VHOST=/
+      - RABBITMQ_QUEUE=default
       - SWAPI_BASE_URL=https://www.swapi.tech/api
     depends_on:
+      redis:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
@@ -81,7 +94,10 @@ services:
       - APP_ENV=local
       - APP_DEBUG=true
       - APP_KEY=base64:dGhpc2lzYXRlc3RrZXlmb3JkZXZlbG9wbWVudG9ubHk=
-      - CACHE_STORE=file
+      - CACHE_STORE=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=null
       - QUEUE_CONNECTION=rabbitmq
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
@@ -90,6 +106,8 @@ services:
       - RABBITMQ_VHOST=/
       - SWAPI_BASE_URL=https://www.swapi.tech/api
     depends_on:
+      redis:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
@@ -102,6 +120,18 @@ services:
       - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - swapi-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

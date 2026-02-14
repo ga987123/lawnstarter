@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Gateways;
+namespace App\Infrastructure\Clients;
 
 use Illuminate\Support\Facades\Redis;
 

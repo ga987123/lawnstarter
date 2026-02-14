@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Domain\Swapi\Contracts\SwapiGatewayInterface;
+use App\Domain\Swapi\Contracts\SwapiClientInterface;
 use App\Domain\Swapi\DTOs\PersonDto;
 use App\Domain\Swapi\Exceptions\SwapiNotFoundException;
 use App\Domain\Swapi\Exceptions\SwapiUnavailableException;
@@ -13,7 +13,7 @@ beforeEach(function (): void {
 });
 
 it('returns a normalized person from swapi', function (): void {
-    $mockGateway = Mockery::mock(SwapiGatewayInterface::class);
+    $mockGateway = Mockery::mock(SwapiClientInterface::class);
     $mockGateway->shouldReceive('fetchPerson')
         ->with(1)
         ->once()
@@ -26,7 +26,7 @@ it('returns a normalized person from swapi', function (): void {
             gender: 'male',
         ));
 
-    $this->app->instance(SwapiGatewayInterface::class, $mockGateway);
+    $this->app->instance(SwapiClientInterface::class, $mockGateway);
 
     $response = $this->getJson('/api/swapi/people/1');
 
@@ -40,13 +40,13 @@ it('returns a normalized person from swapi', function (): void {
 });
 
 it('returns 404 when person is not found', function (): void {
-    $mockGateway = Mockery::mock(SwapiGatewayInterface::class);
+    $mockGateway = Mockery::mock(SwapiClientInterface::class);
     $mockGateway->shouldReceive('fetchPerson')
         ->with(999)
         ->once()
         ->andThrow(new SwapiNotFoundException(999));
 
-    $this->app->instance(SwapiGatewayInterface::class, $mockGateway);
+    $this->app->instance(SwapiClientInterface::class, $mockGateway);
 
     $response = $this->getJson('/api/swapi/people/999');
 
@@ -57,13 +57,13 @@ it('returns 404 when person is not found', function (): void {
 });
 
 it('returns 502 when swapi is unavailable', function (): void {
-    $mockGateway = Mockery::mock(SwapiGatewayInterface::class);
+    $mockGateway = Mockery::mock(SwapiClientInterface::class);
     $mockGateway->shouldReceive('fetchPerson')
         ->with(1)
         ->once()
         ->andThrow(new SwapiUnavailableException);
 
-    $this->app->instance(SwapiGatewayInterface::class, $mockGateway);
+    $this->app->instance(SwapiClientInterface::class, $mockGateway);
 
     $response = $this->getJson('/api/swapi/people/1');
 

@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Http\Responses;
+namespace App\Http\Responses;
 
+use App\Domain\Swapi\DTOs\PaginatedResultDto;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -25,6 +26,23 @@ final class ApiResponse
         ];
 
         return response()->json($payload, $status);
+    }
+
+    /**
+     * Return a paginated JSON response with data under "data" and pagination under "meta".
+     *
+     * @param PaginatedResultDto<mixed> $result
+     * @param int $status HTTP status code
+     * @return JsonResponse
+     */
+    public static function paginated(PaginatedResultDto $result, int $status = 200): JsonResponse
+    {
+        $serialized = $result->toArray();
+
+        return response()->json([
+            'data' => $serialized['items'],
+            'meta' => $serialized['meta'],
+        ], $status);
     }
 
     /**

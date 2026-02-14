@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Gateways;
+namespace App\Infrastructure\Clients\Swapi;
 
 /**
  * Wraps SWAPI API JSON response and provides normalized access to result and properties.
@@ -78,6 +78,30 @@ final readonly class SwapiResponseWrapper
         $properties = $item['properties'] ?? $item;
 
         return is_array($properties) ? $properties : [];
+    }
+
+    /**
+     * Get the total number of records reported by SWAPI.
+     */
+    public function getTotalRecords(): int
+    {
+        return (int) ($this->body['total_records'] ?? 0);
+    }
+
+    /**
+     * Get the total number of pages reported by SWAPI.
+     */
+    public function getTotalPages(): int
+    {
+        return (int) ($this->body['total_pages'] ?? 1);
+    }
+
+    /**
+     * Whether there is a next page of results.
+     */
+    public function hasNextPage(): bool
+    {
+        return !empty($this->body['next']);
     }
 
     /**

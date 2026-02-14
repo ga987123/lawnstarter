@@ -14,23 +14,22 @@ final class RedisQueryLogRepository implements QueryLogRepositoryInterface
 
     private readonly string $queryCountsKey;
 
+    private readonly string $searchLogKey;
+
+    private readonly string $searchCountsKey;
+
     private readonly string $statisticsCacheKey;
 
     private readonly int $statisticsTtl;
 
     public function __construct()
     {
-        $queryLogKey = config('services.statistics.redis_query_log_key');
-        $this->queryLogKey = $queryLogKey;
-        
-        $queryCountsKey = config('services.statistics.redis_query_counts_key');
-        $this->queryCountsKey = $queryCountsKey;
-        
-        $statisticsCacheKey = config('services.statistics.redis_cache_key');
-        $this->statisticsCacheKey = $statisticsCacheKey;
-
-        $statisticsTtl = config('services.statistics.cache_ttl');
-        $this->statisticsTtl = $statisticsTtl;
+        $this->queryLogKey = (string) config('services.statistics.redis_query_log_key');
+        $this->queryCountsKey = (string) config('services.statistics.redis_query_counts_key');
+        $this->searchLogKey = (string) config('services.statistics.redis_search_log_key');
+        $this->searchCountsKey = (string) config('services.statistics.redis_search_counts_key');
+        $this->statisticsCacheKey = (string) config('services.statistics.redis_cache_key');
+        $this->statisticsTtl = (int) config('services.statistics.cache_ttl');
     }
 
     public function recordQuery(int $personId, float $responseTimeMs): void
@@ -45,6 +44,24 @@ final class RedisQueryLogRepository implements QueryLogRepositoryInterface
         $redis = Redis::connection()->client();
         $redis->rpush($this->queryLogKey, [$entry]);
         $redis->zincrby($this->queryCountsKey, 1, (string) $personId);
+    }
+
+    public function recordSearchQuery(string $searchType, string $query, float $responseTimeMs, int $resultCount): void
+    {
+        $entry = json_encode([
+            'search_type' => $searchType,
+            'query' => $query,
+            'response_time_ms' => $responseTimeMs,
+            'result_count' => $resultCount,
+            'timestamp' => now()->toIso8601String(),
+            'hour' => now()->hour,
+        ], JSON_THROW_ON_ERROR);
+
+        $countKey = $searchType . ':' . mb_strtolower(trim($query));
+
+        $redis = Redis::connection()->client();
+        $redis->rpush($this->searchLogKey, [$entry]);
+        $redis->zincrby($this->searchCountsKey, 1, $countKey);
     }
 
     public function computeStatistics(): QueryStatisticsDto
