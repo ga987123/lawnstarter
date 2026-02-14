@@ -8,8 +8,10 @@ use App\Application\Events\QueryExecuted;
 use App\Application\Events\SearchQueryExecuted;
 use App\Domain\Contracts\AppLoggerInterface;
 use App\Domain\Swapi\Contracts\SwapiClientInterface;
+use App\Domain\Swapi\DTOs\FilmDto;
 use App\Domain\Swapi\DTOs\PaginatedResultDto;
 use App\Domain\Swapi\DTOs\PersonDto;
+use App\Domain\Swapi\DTOs\RelatedResourceDto;
 
 final class StarwarsService
 {
@@ -18,7 +20,12 @@ final class StarwarsService
         private readonly AppLoggerInterface $logger,
     ) {}
 
-    public function getPerson(int $id): PersonDto
+    /**
+     * Fetch a person and resolve related film URLs to {id, name}.
+     *
+     * @return array<string, mixed>
+     */
+    public function getPerson(int $id): array
     {
         $startTime = microtime(true);
         $this->logger->info('Fetching person from SWAPI', ['person_id' => $id]);
@@ -29,12 +36,46 @@ final class StarwarsService
 
         QueryExecuted::dispatch($id, $responseTimeMs);
 
-        return $person;
+        $response = $person->toArray();
+        $response['films'] = $this->resolveToArrays($person->films);
+
+        return $response;
     }
 
     /**
-     * @param array<string, mixed> $queryParams Query parameters to pass to SWAPI API
-     * @return PaginatedResultDto<\App\Domain\Swapi\DTOs\PersonDto>
+     * Fetch a film and resolve related resource URLs to {id, name}.
+     *
+     * @return array<string, mixed>
+     */
+    public function getFilm(int $id): array
+    {
+        $this->logger->info('Fetching film from SWAPI', ['film_id' => $id]);
+
+        $film = $this->client->fetchFilm($id);
+
+        $response = $film->toArray();
+        $response['characters'] = $this->resolveToArrays($film->characters);
+
+        return $response;
+    }
+
+    /**
+     * Resolve SWAPI URLs and convert to serializable arrays.
+     *
+     * @param list<string> $urls
+     * @return list<array{id: int, name: string}>
+     */
+    private function resolveToArrays(array $urls): array
+    {
+        return array_map(
+            fn(RelatedResourceDto $dto) => $dto->toArray(),
+            $this->client->resolveResourceNames($urls),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $queryParams
+     * @return PaginatedResultDto<PersonDto>
      */
     public function searchPeople(array $queryParams): PaginatedResultDto
     {
@@ -51,10 +92,10 @@ final class StarwarsService
     }
 
     /**
-     * @param array<string, mixed> $queryParams Query parameters to pass to SWAPI API
-     * @return PaginatedResultDto<\App\Domain\Swapi\DTOs\FilmDto>
+     * @param array<string, mixed> $queryParams
+     * @return list<FilmDto>
      */
-    public function searchFilms(array $queryParams): PaginatedResultDto
+    public function searchFilms(array $queryParams): array
     {
         $startTime = microtime(true);
 
@@ -63,7 +104,7 @@ final class StarwarsService
         $responseTimeMs = (microtime(true) - $startTime) * 1000;
         $searchQuery = (string) ($queryParams['name'] ?? '');
 
-        SearchQueryExecuted::dispatch('films', $searchQuery, $responseTimeMs, count($result->items));
+        SearchQueryExecuted::dispatch('films', $searchQuery, $responseTimeMs, count($result));
 
         return $result;
     }

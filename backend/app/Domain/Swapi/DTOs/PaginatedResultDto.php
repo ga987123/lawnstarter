@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Swapi\DTOs;
 
 /**
- * Wraps a paginated list of items with pagination metadata.
+ * Wraps a list of items with pagination metadata.
  *
  * @template T
  */
@@ -29,7 +29,7 @@ final readonly class PaginatedResultDto
     {
         return [
             'items' => array_map(
-                fn(object $item): array => method_exists($item, 'toArray') ? $item->toArray() : (array) $item,
+                fn(object $item): array => method_exists($item, 'toSearchArray') ? $item->toSearchArray() : (array) $item,
                 $this->items,
             ),
             'meta' => [

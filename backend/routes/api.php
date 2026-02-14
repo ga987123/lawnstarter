@@ -14,6 +14,7 @@ Route::get('/', fn() => response()->json([
     'endpoints' => [
         'health' => '/api/health',
         'swapi_person' => '/api/swapi/people/{id}',
+        'swapi_film' => '/api/swapi/films/{id}',
         'statistics' => '/api/statistics',
     ],
 ]));
@@ -26,6 +27,9 @@ Route::get('/health', HealthController::class);
 Route::get('/swapi/people', [StarWarsController::class, 'searchPeople']);
 Route::get('/swapi/people/{id}', [StarWarsController::class, 'getPerson'])
     ->whereNumber('id');
+
 Route::get('/swapi/films', [StarWarsController::class, 'searchFilms']);
+Route::get('/swapi/films/{id}', [StarWarsController::class, 'getFilm'])
+    ->whereNumber('id');
 
 Route::get('/statistics', StatisticsController::class);

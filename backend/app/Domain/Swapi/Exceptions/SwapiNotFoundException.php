@@ -8,8 +8,8 @@ use RuntimeException;
 
 final class SwapiNotFoundException extends RuntimeException
 {
-    public function __construct(int $id)
+    public function __construct(int $id, string $resource = 'Person')
     {
-        parent::__construct("Person with ID {$id} was not found in SWAPI.");
+        parent::__construct("{$resource} with ID {$id} was not found in SWAPI.");
     }
 }

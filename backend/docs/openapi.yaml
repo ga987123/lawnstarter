@@ -12,13 +12,21 @@ servers:
   - url: http://localhost:8080/api
     description: Local development
 
+tags:
+  - name: Healthcheck
+    description: Health and diagnostics
+  - name: SWAPI
+    description: Star Wars API proxy endpoints
+  - name: Statistics
+    description: Query analytics and statistics
+
 paths:
   /health:
     get:
       summary: Health check
       operationId: getHealth
       tags:
-        - System
+        - Healthcheck
       responses:
         "200":
           description: Service is healthy
@@ -32,6 +40,70 @@ paths:
                     example: ok
                 required:
                   - status
+
+  /swapi/people:
+    get:
+      summary: Search Star Wars people
+      description: Returns a paginated list of Star Wars people. Optionally filter by name.
+      operationId: searchPeople
+      tags:
+        - SWAPI
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter people by name
+          example: luke
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: Number of items per page
+      responses:
+        "200":
+          description: Paginated list of people
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SearchItem"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+                required:
+                  - data
+                  - meta
+              example:
+                data:
+                  - id: 1
+                    name: Luke Skywalker
+                meta:
+                  current_page: 1
+                  total_pages: 9
+                  total_records: 82
+                  has_next_page: true
+        "502":
+          description: SWAPI unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
 
   /swapi/people/{id}:
     get:
@@ -57,12 +129,40 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/Person"
+                required:
+                  - data
+              example:
+                data:
+                  id: 1
+                  name: Luke Skywalker
+                  height: "172"
+                  mass: "77"
+                  birth_year: 19BBY
+                  gender: male
+                  skin_color: fair
+                  hair_color: blond
+                  eye_color: blue
+                  homeworld: "https://www.swapi.tech/api/planets/1"
+                  films:
+                    - id: 1
+                      name: A New Hope
+                    - id: 2
+                      name: The Empire Strikes Back
+                  vehicles:
+                    - "https://www.swapi.tech/api/vehicles/14"
+                  starships:
+                    - "https://www.swapi.tech/api/starships/12"
         "404":
           description: Person not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
+              example:
+                type: "https://httpstatuses.com/404"
+                title: Not Found
+                status: 404
+                detail: "Person with ID 999 was not found in SWAPI."
         "422":
           description: Validation error
           content:
@@ -76,9 +176,118 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /swapi/films:
+    get:
+      summary: Search Star Wars films
+      description: Returns all Star Wars films. Optionally filter by title. No pagination (SWAPI returns all films at once).
+      operationId: searchFilms
+      tags:
+        - SWAPI
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter films by title
+          example: hope
+      responses:
+        "200":
+          description: List of films
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SearchItem"
+                required:
+                  - data
+              example:
+                data:
+                  - id: 1
+                    name: A New Hope
+                  - id: 2
+                    name: The Empire Strikes Back
+        "502":
+          description: SWAPI unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /swapi/films/{id}:
+    get:
+      summary: Get a Star Wars film by ID
+      operationId: getFilm
+      tags:
+        - SWAPI
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The SWAPI film ID
+      responses:
+        "200":
+          description: Film found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Film"
+                required:
+                  - data
+              example:
+                data:
+                  id: 1
+                  title: A New Hope
+                  episode_id: 4
+                  director: George Lucas
+                  producer: "Gary Kurtz, Rick McCallum"
+                  release_date: "1977-05-25"
+                  opening_crawl: "It is a period of civil war..."
+                  characters:
+                    - id: 1
+                      name: Luke Skywalker
+                    - id: 2
+                      name: C-3PO
+                  starships:
+                    - id: 2
+                      name: CR90 corvette
+                  vehicles:
+                    - id: 4
+                      name: Sand Crawler
+        "404":
+          description: Film not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+              example:
+                type: "https://httpstatuses.com/404"
+                title: Not Found
+                status: 404
+                detail: "Film with ID 999 was not found in SWAPI."
+        "502":
+          description: SWAPI unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
   /statistics:
     get:
       summary: Get query statistics
+      description: |
+        Returns computed query statistics including top queries, average response times,
+        and popular hours. Statistics are cached and recomputed every 5 minutes.
       operationId: getStatistics
       tags:
         - Statistics
@@ -92,11 +301,27 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/QueryStatistics"
+                required:
+                  - data
+              example:
+                data:
+                  top_queries:
+                    - person_id: 1
+                      count: 42
+                      percentage: 35.0
+                  average_response_time_ms: 150.25
+                  popular_hours:
+                    "0": 5
+                    "1": 3
+                    "14": 28
+                  total_queries: 120
+                  computed_at: "2026-01-15T10:30:00+00:00"
 
 components:
   schemas:
     Person:
       type: object
+      description: A Star Wars character
       properties:
         id:
           type: integer
@@ -116,6 +341,24 @@ components:
         gender:
           type: string
           example: male
+        skin_color:
+          type: string
+          example: fair
+        hair_color:
+          type: string
+          example: blond
+        eye_color:
+          type: string
+          example: blue
+        homeworld:
+          type: string
+          description: URL to the person's homeworld
+          example: "https://www.swapi.tech/api/planets/1"
+        films:
+          type: array
+          description: Films the person appeared in (resolved to id and name)
+          items:
+            $ref: "#/components/schemas/RelatedResource"
       required:
         - id
         - name
@@ -123,12 +366,115 @@ components:
         - mass
         - birth_year
         - gender
+        - skin_color
+        - hair_color
+        - eye_color
+        - homeworld
+        - films
+
+    Film:
+      type: object
+      description: A Star Wars film
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: A New Hope
+        episode_id:
+          type: integer
+          description: The episode number of the film
+          example: 4
+        director:
+          type: string
+          example: George Lucas
+        producer:
+          type: string
+          example: "Gary Kurtz, Rick McCallum"
+        release_date:
+          type: string
+          example: "1977-05-25"
+        opening_crawl:
+          type: string
+          description: The opening paragraphs at the beginning of the film
+          example: "It is a period of civil war..."
+        characters:
+          type: array
+          description: Characters featured in the film (resolved to id and name)
+          items:
+            $ref: "#/components/schemas/RelatedResource"
+      required:
+        - id
+        - title
+        - episode_id
+        - director
+        - producer
+        - release_date
+        - opening_crawl
+        - characters
+
+    SearchItem:
+      type: object
+      description: Slim search result item with only id and name
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Luke Skywalker
+      required:
+        - id
+        - name
+
+    RelatedResource:
+      type: object
+      description: A resolved related resource with id and name
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Luke Skywalker
+      required:
+        - id
+        - name
+
+    PaginationMeta:
+      type: object
+      description: Pagination metadata returned with list endpoints
+      properties:
+        current_page:
+          type: integer
+          description: Current page number (1-based)
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages
+          example: 9
+        total_records:
+          type: integer
+          description: Total number of records across all pages
+          example: 82
+        has_next_page:
+          type: boolean
+          description: Whether more pages are available
+          example: true
+      required:
+        - current_page
+        - total_pages
+        - total_records
+        - has_next_page
 
     QueryStatistics:
       type: object
+      description: Aggregated query analytics
       properties:
         top_queries:
           type: array
+          description: Top 5 most queried person IDs
           items:
             type: object
             properties:
@@ -139,9 +485,14 @@ components:
               percentage:
                 type: number
                 format: float
+            required:
+              - person_id
+              - count
+              - percentage
         average_response_time_ms:
           type: number
           format: float
+          description: Average SWAPI response time in milliseconds
         popular_hours:
           type: object
           description: "Map of hour (0-23) to query count"
@@ -149,23 +500,35 @@ components:
             type: integer
         total_queries:
           type: integer
+          description: Total number of detail queries recorded
         computed_at:
           type: string
           format: date-time
+          description: When these statistics were last computed
+      required:
+        - top_queries
+        - average_response_time_ms
+        - popular_hours
+        - total_queries
+        - computed_at
 
     ProblemDetails:
       type: object
-      description: RFC 9457 Problem Details
+      description: RFC 9457 Problem Details for HTTP APIs
       properties:
         type:
           type: string
           format: uri
+          example: "https://httpstatuses.com/404"
         title:
           type: string
+          example: Not Found
         status:
           type: integer
+          example: 404
         detail:
           type: string
+          example: "Person with ID 999 was not found in SWAPI."
       required:
         - type
         - title
@@ -179,7 +542,16 @@ components:
           properties:
             errors:
               type: object
+              description: Field-level validation errors
               additionalProperties:
                 type: array
                 items:
                   type: string
+          example:
+            type: "https://httpstatuses.com/422"
+            title: Validation Error
+            status: 422
+            detail: "The id field must be an integer."
+            errors:
+              id:
+                - "The id field must be an integer."

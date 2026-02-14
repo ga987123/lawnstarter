@@ -6,11 +6,18 @@ namespace App\Domain\Swapi\DTOs;
 
 final readonly class FilmDto
 {
+    /**
+     * @param list<string> $characters
+     */
     public function __construct(
         public int $id,
         public string $title,
+        public int $episodeId,
         public string $director,
+        public string $producer,
         public string $releaseDate,
+        public string $openingCrawl,
+        public array $characters,
     ) {}
 
     /**
@@ -23,8 +30,12 @@ final readonly class FilmDto
         return new self(
             id: $id,
             title: (string) ($properties['title'] ?? ''),
+            episodeId: (int) ($properties['episode_id'] ?? 0),
             director: (string) ($properties['director'] ?? ''),
+            producer: (string) ($properties['producer'] ?? ''),
             releaseDate: (string) ($properties['release_date'] ?? ''),
+            openingCrawl: (string) ($properties['opening_crawl'] ?? ''),
+            characters: is_array($properties['characters'] ?? null) ? array_values($properties['characters']) : [],
         );
     }
 
@@ -47,17 +58,6 @@ final readonly class FilmDto
     }
 
     /**
-     * @param  array<string, mixed>  $item  SWAPI result item with uid and properties
-     */
-    public static function fromSwapiResult(array $item): self
-    {
-        $uid = (int) ($item['uid'] ?? 0);
-        $properties = $item['properties'] ?? $item;
-
-        return self::fromSwapiItem($uid, $properties);
-    }
-
-    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -65,8 +65,25 @@ final readonly class FilmDto
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'episode_id' => $this->episodeId,
             'director' => $this->director,
+            'producer' => $this->producer,
             'release_date' => $this->releaseDate,
+            'opening_crawl' => $this->openingCrawl,
+            'characters' => $this->characters,
+        ];
+    }
+
+    /**
+     * Slim representation for search result lists.
+     *
+     * @return array{id: int, name: string}
+     */
+    public function toSearchArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->title,
         ];
     }
 }

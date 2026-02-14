@@ -6,6 +6,9 @@ namespace App\Domain\Swapi\DTOs;
 
 final readonly class PersonDto
 {
+    /**
+     * @param list<string> $films
+     */
     public function __construct(
         public int $id,
         public string $name,
@@ -13,6 +16,10 @@ final readonly class PersonDto
         public string $mass,
         public string $birthYear,
         public string $gender,
+        public string $skinColor,
+        public string $hairColor,
+        public string $eyeColor,
+        public array $films,
     ) {}
 
     /**
@@ -27,6 +34,10 @@ final readonly class PersonDto
             mass: (string) ($data['mass'] ?? ''),
             birthYear: (string) ($data['birth_year'] ?? ''),
             gender: (string) ($data['gender'] ?? ''),
+            skinColor: (string) ($data['skin_color'] ?? ''),
+            hairColor: (string) ($data['hair_color'] ?? ''),
+            eyeColor: (string) ($data['eye_color'] ?? ''),
+            films: is_array($data['films'] ?? null) ? array_values($data['films']) : []
         );
     }
 
@@ -60,6 +71,23 @@ final readonly class PersonDto
             'mass' => $this->mass,
             'birth_year' => $this->birthYear,
             'gender' => $this->gender,
+            'skin_color' => $this->skinColor,
+            'hair_color' => $this->hairColor,
+            'eye_color' => $this->eyeColor,
+            'films' => $this->films,
+        ];
+    }
+
+    /**
+     * Slim representation for search result lists.
+     *
+     * @return array{id: int, name: string}
+     */
+    public function toSearchArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
         ];
     }
 }
