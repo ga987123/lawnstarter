@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Application\Events\FilmQueryExecuted;
 use App\Application\Events\QueryExecuted;
 use App\Application\Events\SearchQueryExecuted;
+use App\Application\Listeners\RecordFilmQueryMetrics;
 use App\Application\Listeners\RecordQueryMetrics;
 use App\Application\Listeners\RecordSearchMetrics;
 use App\Domain\Contracts\AppLoggerInterface;
@@ -41,6 +43,7 @@ final class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(QueryExecuted::class, RecordQueryMetrics::class);
+        Event::listen(FilmQueryExecuted::class, RecordFilmQueryMetrics::class);
         Event::listen(SearchQueryExecuted::class, RecordSearchMetrics::class);
     }
 }

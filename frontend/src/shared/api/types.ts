@@ -70,10 +70,22 @@ export interface TopQuery {
   percentage: number;
 }
 
+export interface TopSearchQuery {
+  search_type: string;
+  query: string;
+  count: number;
+  percentage: number;
+}
+
+export interface PopularHour {
+  hour: number;
+  total_count: number;
+}
+
 export interface QueryStatistics {
-  top_queries: TopQuery[];
+  top_search_queries: TopSearchQuery[];
   average_response_time_ms: number;
-  popular_hours: Record<number, number>;
+  popular_hours: PopularHour[];
   total_queries: number;
   computed_at: string;
 }

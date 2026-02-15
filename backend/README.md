@@ -157,7 +157,9 @@ Returns query statistics, recomputed every 5 minutes.
 ```json
 {
     "data": {
-        "top_queries": [{ "person_id": 1, "count": 42, "percentage": 35.0 }],
+        "top_search_queries": [
+            { "search_type": "person", "count": 42, "percentage": 35.0 }
+        ],
         "average_response_time_ms": 150.25,
         "popular_hours": { "0": 5, "1": 3, "14": 28 },
         "total_queries": 120,

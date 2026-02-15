@@ -13,13 +13,17 @@ final class CircuitBreaker
     private const STATE_OPEN = 'open';
     private const STATE_HALF_OPEN = 'half_open';
 
+    private readonly AppLoggerInterface $logger;
+
     public function __construct(
         private readonly string $circuitKey,
         private readonly int $failureThreshold = 5,
         private readonly int $timeoutSeconds = 60,
         private readonly int $halfOpenSuccessThreshold = 2,
-        private readonly ?AppLoggerInterface $logger = null,
-    ) {}
+        ?AppLoggerInterface $logger = null,
+    ) {
+        $this->logger = $logger ?? app(AppLoggerInterface::class);
+    }
 
     /**
      * Check if circuit breaker allows the request.
@@ -38,11 +42,11 @@ final class CircuitBreaker
             if ($timeSinceLastFailure >= $this->timeoutSeconds) {
                 $this->setState(self::STATE_HALF_OPEN);
                 $this->resetHalfOpenSuccessCount();
-                $this->logger?->info('Circuit breaker transitioning to HALF_OPEN', ['key' => $this->circuitKey]);
+                $this->logger->info('Circuit breaker transitioning to HALF_OPEN', ['key' => $this->circuitKey]);
                 return;
             }
 
-            $this->logger?->warning('Circuit breaker OPEN, blocking request', [
+            $this->logger->warning('Circuit breaker OPEN, blocking request', [
                 'key' => $this->circuitKey,
                 'last_failure_seconds_ago' => $timeSinceLastFailure,
                 'retry_after_seconds' => $this->timeoutSeconds,
@@ -62,7 +66,7 @@ final class CircuitBreaker
                 $this->setState(self::STATE_CLOSED);
                 $this->resetFailureCount();
                 $this->resetHalfOpenSuccessCount();
-                $this->logger?->info('Circuit breaker recovered, transitioning to CLOSED', ['key' => $this->circuitKey]);
+                $this->logger->info('Circuit breaker recovered, transitioning to CLOSED', ['key' => $this->circuitKey]);
             }
         }
     }
@@ -97,7 +101,7 @@ final class CircuitBreaker
             $this->setLastFailureTime();
             $this->resetHalfOpenSuccessCount();
             $this->incrementFailureCount();
-            $this->logger?->warning('Circuit breaker failure in HALF_OPEN, reverting to OPEN', ['key' => $this->circuitKey]);
+            $this->logger->warning('Circuit breaker failure in HALF_OPEN, reverting to OPEN', ['key' => $this->circuitKey]);
             return;
         }
 
@@ -106,7 +110,7 @@ final class CircuitBreaker
 
         if ($failureCount >= $this->failureThreshold) {
             $this->setState(self::STATE_OPEN);
-            $this->logger?->error('Circuit breaker tripped to OPEN', [
+            $this->logger->error('Circuit breaker tripped to OPEN', [
                 'key' => $this->circuitKey,
                 'failures' => $failureCount,
                 'threshold' => $this->failureThreshold,

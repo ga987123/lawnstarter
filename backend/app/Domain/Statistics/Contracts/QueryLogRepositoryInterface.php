@@ -10,6 +10,8 @@ interface QueryLogRepositoryInterface
 {
     public function recordQuery(int $personId, float $responseTimeMs): void;
 
+    public function recordFilmQuery(int $filmId, float $responseTimeMs): void;
+
     public function recordSearchQuery(string $searchType, string $query, float $responseTimeMs, int $resultCount): void;
 
     public function computeStatistics(): QueryStatisticsDto;

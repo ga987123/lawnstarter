@@ -18,9 +18,6 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# ──────────────────────────────────────────────
-# Development target
-# ──────────────────────────────────────────────
 FROM base AS development
 
 # Copy composer files first for better caching
@@ -47,9 +44,6 @@ EXPOSE 9000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]
 
-# ──────────────────────────────────────────────
-# Production target
-# ──────────────────────────────────────────────
 FROM base AS production
 
 COPY composer.json composer.lock* ./

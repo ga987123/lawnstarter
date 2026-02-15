@@ -17,6 +17,8 @@ return [
     'statistics' => [
         'redis_query_log_key' => env('STATISTICS_QUERY_LOG_KEY', 'swapi:query_log'),
         'redis_query_counts_key' => env('STATISTICS_QUERY_COUNTS_KEY', 'swapi:query_counts'),
+        'redis_film_query_log_key' => env('STATISTICS_FILM_QUERY_LOG_KEY', 'swapi:film_query_log'),
+        'redis_film_query_counts_key' => env('STATISTICS_FILM_QUERY_COUNTS_KEY', 'swapi:film_query_counts'),
         'redis_search_log_key' => env('STATISTICS_SEARCH_LOG_KEY', 'swapi:search_log'),
         'redis_search_counts_key' => env('STATISTICS_SEARCH_COUNTS_KEY', 'swapi:search_counts'),
         'redis_cache_key' => env('STATISTICS_CACHE_KEY', 'swapi:statistics'),

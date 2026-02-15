@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Services;
 
+use App\Application\Events\FilmQueryExecuted;
 use App\Application\Events\QueryExecuted;
 use App\Application\Events\SearchQueryExecuted;
 use App\Domain\Contracts\AppLoggerInterface;
@@ -49,9 +50,14 @@ final class StarwarsService
      */
     public function getFilm(int $id): array
     {
+        $startTime = microtime(true);
         $this->logger->info('Fetching film from SWAPI', ['film_id' => $id]);
 
         $film = $this->client->fetchFilm($id);
+
+        $responseTimeMs = (microtime(true) - $startTime) * 1000;
+
+        FilmQueryExecuted::dispatch($id, $responseTimeMs);
 
         $response = $film->toArray();
         $response['characters'] = $this->resolveToArrays($film->characters);
