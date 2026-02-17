@@ -63,8 +63,8 @@ app/
 │       └── DTOs/                   # QueryStatisticsDto
 ├── Application/                    # Use cases & orchestration
 │   ├── Services/                   # StarwarsService, StatisticsService
-│   ├── Events/                     # QueryExecuted, SearchQueryExecuted
-│   ├── Listeners/                  # RecordQueryMetrics, RecordSearchMetrics (queued)
+│   ├── Events/                     # QueryExecuted, FilmQueryExecuted, SearchQueryExecuted
+│   ├── Listeners/                  # RecordQueryMetrics, RecordFilmQueryMetrics, RecordSearchMetrics (queued)
 │   ├── Jobs/                       # RecomputeStatisticsJob
 │   └── Console/Commands/           # ComputeStatisticsCommand
 ├── Http/                           # HTTP layer
@@ -325,44 +325,68 @@ Redis also serves as the queue driver (configurable via `QUEUE_CONNECTION`), use
 
 ## RabbitMQ / Queue Usage
 
-The application uses Laravel's event-driven architecture with **queued listeners** to process statistics asynchronously, decoupling the API response from the metrics recording.
+The application uses Laravel's event-driven architecture with **queued listeners** to process statistics asynchronously, decoupling the API response from the metrics recording. Events are dispatched by `StarwarsService` and listeners are registered in `AppServiceProvider::boot()`.
 
 ### Flow
 
+```mermaid
+flowchart LR
+  subgraph Service[StarwarsService]
+    getPerson[getPerson]
+    getFilm[getFilm]
+    searchPeople[searchPeople]
+    searchFilms[searchFilms]
+  end
+
+  subgraph Events[Events]
+    QE[QueryExecuted]
+    FQE[FilmQueryExecuted]
+    SQE[SearchQueryExecuted]
+  end
+
+  subgraph Listeners[Queued Listeners]
+    RQM[RecordQueryMetrics]
+    RFQM[RecordFilmQueryMetrics]
+    RSM[RecordSearchMetrics]
+  end
+
+  Redis[(Redis)]
+
+  getPerson --> QE
+  getFilm --> FQE
+  searchPeople --> SQE
+  searchFilms --> SQE
+
+  QE --> RQM
+  FQE --> RFQM
+  SQE --> RSM
+
+  RQM --> Redis
+  RFQM --> Redis
+  RSM --> Redis
 ```
-API Request
-    │
-    ▼
-StarwarsService (dispatches event)
-    │
-    ├── QueryExecuted         → when a person detail is fetched
-    └── SearchQueryExecuted   → when a search (people/films) is executed
-            │
-            ▼
-    Queued Listener (processed via queue worker)
-            │
-            ├── RecordQueryMetrics   → calls RedisQueryLogRepository::recordQuery()
-            └── RecordSearchMetrics  → calls RedisQueryLogRepository::recordSearchQuery()
-                    │
-                    ▼
-              Redis (statistics stored)
-```
+
+- **getPerson(id)** → dispatches `QueryExecuted` (personId, responseTimeMs) → **RecordQueryMetrics** → Redis.
+- **getFilm(id)** → dispatches `FilmQueryExecuted` (filmId, responseTimeMs) → **RecordFilmQueryMetrics** → Redis.
+- **searchPeople(params)** / **searchFilms(params)** → dispatch `SearchQueryExecuted` (searchType, query, responseTimeMs, resultCount) → **RecordSearchMetrics** → Redis.
+
+All three listeners implement `ShouldQueue`; jobs are processed by the queue worker (RabbitMQ), so the HTTP response is not blocked by metrics writes.
 
 ### Events
 
-| Event                 | Dispatched when              | Payload                                                |
-| --------------------- | ---------------------------- | ------------------------------------------------------ |
-| `QueryExecuted`       | Person detail fetched by ID  | `personId`, `responseTimeMs`                           |
-| `SearchQueryExecuted` | People/films search executed | `searchType`, `query`, `responseTimeMs`, `resultCount` |
+| Event                 | Dispatched when               | Payload                                                |
+| --------------------- | ----------------------------- | ------------------------------------------------------ |
+| `QueryExecuted`       | Person detail fetched by ID   | `personId`, `responseTimeMs`                           |
+| `FilmQueryExecuted`   | Film detail fetched by ID    | `filmId`, `responseTimeMs`                             |
+| `SearchQueryExecuted` | People or films search run   | `searchType`, `query`, `responseTimeMs`, `resultCount` |
 
 ### Listeners
 
-Both listeners implement `ShouldQueue`, meaning they are pushed to the queue (RabbitMQ) and processed by a background worker instead of blocking the HTTP response.
-
-| Listener              | Handles               | Action                        |
-| --------------------- | --------------------- | ----------------------------- |
-| `RecordQueryMetrics`  | `QueryExecuted`       | Records detail query in Redis |
-| `RecordSearchMetrics` | `SearchQueryExecuted` | Records search query in Redis |
+| Listener                 | Handles               | Action                                  |
+| ------------------------ | --------------------- | --------------------------------------- |
+| `RecordQueryMetrics`     | `QueryExecuted`       | `recordQuery(personId, responseTimeMs)` |
+| `RecordFilmQueryMetrics` | `FilmQueryExecuted`   | `recordFilmQuery(filmId, responseTimeMs)` |
+| `RecordSearchMetrics`    | `SearchQueryExecuted` | `recordSearchQuery(searchType, query, responseTimeMs, resultCount)` |
 
 ## Testing
 
