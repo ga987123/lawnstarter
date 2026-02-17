@@ -6,7 +6,8 @@ mkdir -p storage/framework/views storage/framework/cache/data storage/framework/
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 
 # Declare RabbitMQ queue so it exists before any app code connects
-if [ -n "${RABBITMQ_HOST}" ]; then
+# Only run if vendor/autoload.php exists (composer install has been run)
+if [ -n "${RABBITMQ_HOST}" ] && [ -f "vendor/autoload.php" ]; then
   echo "Declaring RabbitMQ queue 'default'..."
   php artisan rabbitmq:queue-declare default rabbitmq
 fi

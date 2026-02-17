@@ -1,0 +1,22 @@
+# Dependencies – never copy host vendor into the image
+vendor/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Build artifacts and tests (tests are mounted in dev)
+node_modules/
+tests/
+.phpunit.result.cache
+.phpunit.cache/
+coverage/
+build/
+
+# Version control and IDE
+.git/
+.idea/
+.vscode/
+*.swp
+*.swo

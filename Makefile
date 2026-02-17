@@ -1,11 +1,11 @@
-.PHONY: up down logs backend-shell frontend-shell test test-backend test-backend-coverage test-frontend test-frontend-coverage test-acceptance lint fresh build build-frontend
+.PHONY: up down logs test test-backend test-backend-coverage test-frontend test-frontend-coverage test-acceptance init build-frontend
 
 # ──────────────────────────────────────────────
 # Docker Compose
 # ──────────────────────────────────────────────
 
 up:
-	docker compose up -d
+	docker compose up -d && docker compose logs -f
 
 down:
 	docker compose down
@@ -13,8 +13,8 @@ down:
 logs:
 	docker compose logs -f
 
-build:
-	docker compose build --no-cache
+init:
+	docker compose build --no-cache && cd frontend && npm install && cd .. && cd backend && cp .env.example .env && composer install
 
 build-frontend:
 	docker compose build frontend

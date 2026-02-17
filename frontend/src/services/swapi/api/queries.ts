@@ -30,13 +30,11 @@ export function useSearchPeople(query: string, enabled: boolean) {
     queryKey: ["swapi", "search", "people", query],
     queryFn: ({ pageParam }) =>
       apiClient.get<PersonListResponse>(
-        `/swapi/people?name=${encodeURIComponent(query)}&page=${pageParam}&limit=${DEFAULT_LIMIT}`
+        `/swapi/people?name=${encodeURIComponent(query)}&page=${pageParam}&limit=${DEFAULT_LIMIT}`,
       ),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
-      lastPage.meta.has_next_page
-        ? lastPage.meta.current_page + 1
-        : undefined,
+      lastPage.meta.has_next_page ? lastPage.meta.current_page + 1 : undefined,
     enabled,
   });
 }
@@ -46,7 +44,7 @@ export function useSearchFilms(query: string, enabled: boolean) {
     queryKey: ["swapi", "search", "films", query],
     queryFn: () =>
       apiClient.get<FilmListResponse>(
-        `/swapi/films?name=${encodeURIComponent(query)}`
+        `/swapi/films?title=${encodeURIComponent(query)}`,
       ),
     enabled,
   });

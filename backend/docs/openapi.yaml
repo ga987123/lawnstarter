@@ -2,11 +2,10 @@ openapi: 3.1.0
 info:
   title: SWAPI Proxy API
   description: |
-    A proxy API for the Star Wars API (swapi.tech).
-    Provides normalized responses and query statistics.
+    A proxy API for the Star Wars API.
   version: 1.0.0
   contact:
-    name: API Support
+    name: Gabriel Moreira
 
 servers:
   - url: http://localhost:8080/api

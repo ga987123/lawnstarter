@@ -1,41 +1,70 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage: Composer dependencies (development – includes dev deps)
+# ─────────────────────────────────────────────────────────────────────────────
+FROM composer:2 AS vendor-dev
+WORKDIR /app
+
+COPY composer.json composer.lock* ./
+
+RUN composer install \
+    --no-scripts \
+    --no-autoloader \
+    --no-interaction \
+    --prefer-dist \
+    --ignore-platform-req=ext-sockets \
+    && composer dump-autoload --optimize --no-scripts
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage: Composer dependencies (production – no dev deps)
+# ─────────────────────────────────────────────────────────────────────────────
+FROM composer:2 AS vendor-prod
+WORKDIR /app
+
+COPY composer.json composer.lock* ./
+
+RUN composer install \
+    --no-dev \
+    --no-scripts \
+    --no-autoloader \
+    --no-interaction \
+    --prefer-dist \
+    --ignore-platform-req=ext-sockets \
+    && composer dump-autoload --optimize --no-dev --no-scripts
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage: Base PHP runtime
+# ─────────────────────────────────────────────────────────────────────────────
 FROM php:8.4-fpm-alpine AS base
 
-# Install system dependencies
 RUN apk add --no-cache \
     curl \
+    git \
     libzip-dev \
     linux-headers \
+    unzip \
     && docker-php-ext-install zip pcntl sockets
 
-# Install Redis and PCOV (code coverage) extensions
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
     && pecl install redis pcov \
     && docker-php-ext-enable redis pcov \
     && apk del .build-deps
 
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
 WORKDIR /var/www/html
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage: Development (Composer kept for one-off installs)
+# ─────────────────────────────────────────────────────────────────────────────
 FROM base AS development
 
-# Copy composer files first for better caching
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 COPY composer.json composer.lock* ./
-
-# Install dependencies (ignore ext-sockets during install; we have it in runtime)
-RUN composer install --no-scripts --no-autoloader --prefer-dist --ignore-platform-req=ext-sockets
-
-# Copy application code
 COPY . .
 
-# Generate optimized autoloader
-RUN composer dump-autoload --optimize
+COPY --from=vendor-dev /app/vendor ./vendor
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || true
 
-# Entrypoint declares RabbitMQ queue before starting the main process
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
@@ -44,16 +73,17 @@ EXPOSE 9000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage: Production (no Composer in final image)
+# ─────────────────────────────────────────────────────────────────────────────
 FROM base AS production
 
 COPY composer.json composer.lock* ./
-
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --optimize-autoloader
-
 COPY . .
 
-RUN composer dump-autoload --optimize --no-dev \
-    && php artisan config:cache \
+COPY --from=vendor-prod /app/vendor ./vendor
+
+RUN php artisan config:cache \
     && php artisan route:cache
 
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache

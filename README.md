@@ -5,11 +5,15 @@ A production-ready monorepo that proxies the [Star Wars API](https://www.swapi.t
 ## Quick Start
 
 ```bash
+# If needed, install make and composer
+brew install make
+brew install composer
+
+# Build project
+make init
+
 # Start all services
 make up
-
-# Or without make:
-docker compose up -d
 ```
 
 Once running:
@@ -38,13 +42,14 @@ See each folder's README for detailed architecture:
 
 ## Available Commands
 
-| Command      | Description                       |
-| ------------ | --------------------------------- |
-| `make up`    | Start all services                |
-| `make down`  | Stop all services                 |
-| `make logs`  | Tail logs from all services       |
-| `make build` | Rebuild all containers (no cache) |
-| `make test`  | Run all tests                     |
+| Command       | Description                                      |
+| ------------- | ------------------------------------------------ |
+| `make install`| Install Composer deps into backend/vendor (first run) |
+| `make up`     | Start all services                               |
+| `make down`   | Stop all services                                |
+| `make logs`   | Tail logs from all services                      |
+| `make init`   | Build containers, npm install, copy .env.example |
+| `make test`   | Run all tests                                    |
 
 ## Tech Stack
 
