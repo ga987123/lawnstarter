@@ -23,5 +23,18 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     pool: "threads",
     testTimeout: 30000,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      reportsDirectory: "coverage",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.d.ts",
+        "src/**/__tests__/**",
+        "src/**/*.test.{ts,tsx}",
+        "src/**/*.spec.{ts,tsx}",
+        "src/main.tsx",
+      ],
+    },
   },
 });

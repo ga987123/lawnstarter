@@ -394,6 +394,7 @@ Tests use **Pest** (PHPUnit wrapper) with shared mocks in `tests/Mocks/` and are
 
 - **Unit** (`tests/Unit/`): Application (services, commands, listeners, jobs), Domain (DTOs), Infrastructure (CircuitBreaker, RedisQueryLogRepository, SwapiResponseWrapper), Http (ApiResponse, controllers, middleware). Dependencies are mocked.
 - **Feature** (`tests/Feature/`): HTTP integration by endpoint (API root, health, Swagger, SwAPI people/films, statistics). Real routes are called; external boundaries (e.g. `SwapiClientInterface`, `QueryLogRepositoryInterface`) are mocked.
+- **Acceptance** (`tests/Acceptance`): Acceptance tests using behat as the framework to validate business logic and e2e integration.
 
 ```bash
 # Run all tests

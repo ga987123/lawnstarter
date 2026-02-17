@@ -142,9 +142,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    working_dir: /home/node/app
     ports:
       - "5173:5173"
     volumes:
+      - ./frontend/package.json:/home/node/app/package.json
       - ./frontend/src:/home/node/app/src
       - ./frontend/index.html:/home/node/app/index.html
       - ./frontend/vite.config.ts:/home/node/app/vite.config.ts

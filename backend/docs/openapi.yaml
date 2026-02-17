@@ -476,20 +476,20 @@ components:
       type: object
       description: Aggregated query analytics
       properties:
-          items:
-            type: object
-            properties:
-              person_id:
-                type: integer
-              count:
-                type: integer
-              percentage:
-                type: number
-                format: float
-            required:
-              - person_id
-              - count
-              - percentage
+        items:
+          type: object
+          properties:
+            person_id:
+              type: integer
+            count:
+              type: integer
+            percentage:
+              type: number
+              format: float
+          required:
+            - person_id
+            - count
+            - percentage
         top_search_queries:
           type: array
           description: Top 5 most searched queries (people/films)
