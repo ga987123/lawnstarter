@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+:root {
+  --color-brand: #0ab463;
+  --color-brand-hover: #099954;
+  --color-pinkish-grey: #c4c4c4;
+  --color-warm-grey-75: #848484bf;
+  --color-background: #e8e8e8;
+}
+
+body {
+  background-color: var(--color-background);
+  font-family: Montserrat;
+  font-stretch: normal;
+  font-style: normal;
+  line-height: normal;
+  letter-spacing: normal;
+  color: #383838;
+}

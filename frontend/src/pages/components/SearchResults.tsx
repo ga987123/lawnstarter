@@ -33,11 +33,16 @@ export function SearchResults({
   const handleIntersect = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const entry = entries[0];
-      if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage && onLoadMore) {
+      if (
+        entry?.isIntersecting &&
+        hasNextPage &&
+        !isFetchingNextPage &&
+        onLoadMore
+      ) {
         onLoadMore();
       }
     },
-    [hasNextPage, isFetchingNextPage, onLoadMore]
+    [hasNextPage, isFetchingNextPage, onLoadMore],
   );
 
   useEffect(() => {
@@ -54,42 +59,49 @@ export function SearchResults({
     return () => observer.disconnect();
   }, [handleIntersect]);
 
-  const showEmptyState = !hasSearched || (items.length === 0 && !isLoading && !isError);
+  const showEmptyState =
+    !hasSearched || (items.length === 0 && !isLoading && !isError);
   const detailPath = searchType === SearchType.People ? "/person" : "/film";
 
   return (
-    <section>
-      <h2 className="mb-4 text-xl font-bold text-slate-900">Results</h2>
+    <section
+      className="bg-white p-6 rounded-sm shadow-md flex h-[36rem] flex-col gap-2 overflow-y-auto rounded-lg border border-[.5px] p-2"
+      ref={scrollContainerRef}
+    >
+      <h2 className="text-xl font-bold text-[#000]">Results</h2>
+      <hr className="border-slate-200" />
       {isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">
           Error: {error instanceof Error ? error.message : "Unknown error"}
         </div>
       )}
       {showEmptyState ? (
-        <p className="text-slate-600">
-          There are zero matches. Use the form to search for People or Movie.
-        </p>
+        <div className="min-h-96 flex flex-col items-center justify-center text-[var(--color-pinkish-grey)] font-bold">
+          <p className="text-center">There are zero matches.</p>
+          <p className="text-center">
+            Use the form to search for People or Movie.
+          </p>
+        </div>
       ) : (
-        <div
-          ref={scrollContainerRef}
-          className="flex max-h-[32rem] flex-col gap-2 overflow-y-auto rounded-lg border border-slate-200 p-2"
-        >
+        <div>
           {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
-            >
-              <span className="font-medium text-slate-900">{item.name}</span>
-              <Link
-                to={`${detailPath}/${item.id}`}
-                className="rounded bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+            <>
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-4 py-3"
               >
-                SEE DETAILS
-              </Link>
-            </div>
+                <span className="font-bold text-lg">{item.name}</span>
+                <Link
+                  to={`${detailPath}/${item.id}`}
+                  className="rounded-full bg-[var(--color-brand)] px-4 py-1.5 text-sm font-bold text-white hover:bg-[var(--color-brand-hover)]"
+                >
+                  SEE DETAILS
+                </Link>
+              </div>
+              <hr className="border-slate-300" />
+            </>
           ))}
 
-          {/* Sentinel element for infinite scroll */}
           <div ref={sentinelRef} className="h-1 shrink-0" />
 
           {isFetchingNextPage && (

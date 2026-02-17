@@ -54,8 +54,8 @@ final class CircuitBreaker
 
             throw new \RuntimeException(
                 'Circuit breaker is OPEN. Service is unavailable. ' .
-                "Last failure: {$timeSinceLastFailure}s ago. " .
-                "Retry after {$this->timeoutSeconds}s."
+                    "Last failure: {$timeSinceLastFailure}s ago. " .
+                    "Retry after {$this->timeoutSeconds}s."
             );
         }
 

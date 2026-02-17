@@ -17,7 +17,7 @@ export function SearchTypeInput({ value, onChange }: SearchTypeInputProps) {
           onChange={() => onChange(SearchType.People)}
           className="h-4 w-4"
         />
-        <span className="text-slate-700">People</span>
+        <span className="font-bold">People</span>
       </label>
       <label className="flex items-center gap-2">
         <input
@@ -28,7 +28,7 @@ export function SearchTypeInput({ value, onChange }: SearchTypeInputProps) {
           onChange={() => onChange(SearchType.Movies)}
           className="h-4 w-4"
         />
-        <span className="text-slate-700">Movies</span>
+        <span className="font-bold">Movies</span>
       </label>
     </div>
   );

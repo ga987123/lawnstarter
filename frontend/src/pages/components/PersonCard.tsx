@@ -7,43 +7,45 @@ interface PersonCardProps {
 
 export function PersonCard({ person }: PersonCardProps) {
   return (
-    <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-      <h2 className="mb-4 text-xl font-bold text-slate-900">{person.name}</h2>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-        <dt className="font-medium text-slate-500">Height</dt>
-        <dd className="text-slate-800">{person.height} cm</dd>
-        <dt className="font-medium text-slate-500">Mass</dt>
-        <dd className="text-slate-800">{person.mass} kg</dd>
-        <dt className="font-medium text-slate-500">Birth Year</dt>
-        <dd className="text-slate-800">{person.birth_year}</dd>
-        <dt className="font-medium text-slate-500">Gender</dt>
-        <dd className="text-slate-800 capitalize">{person.gender}</dd>
-        <dt className="font-medium text-slate-500">Skin Color</dt>
-        <dd className="text-slate-800 capitalize">{person.skin_color}</dd>
-        <dt className="font-medium text-slate-500">Hair Color</dt>
-        <dd className="text-slate-800 capitalize">{person.hair_color}</dd>
-        <dt className="font-medium text-slate-500">Eye Color</dt>
-        <dd className="text-slate-800 capitalize">{person.eye_color}</dd>
-      </dl>
-
-      {person.films.length > 0 && (
-        <div className="mt-6">
-          <h3 className="mb-2 text-sm font-semibold text-slate-900">Films</h3>
-          <span className="text-sm leading-relaxed">
-            {person.films.map((film, i) => (
-              <span key={film.id}>
-                <Link
-                  to={`/film/${film.id}`}
-                  className="text-emerald-600 underline hover:text-emerald-800"
-                >
-                  {film.name}
-                </Link>
-                {i < person.films.length - 1 && ", "}
-              </span>
-            ))}
-          </span>
+    <>
+      <h1 className="text-2xl font-bold mb-6">{person.name}</h1>
+      <div className="flex flex-col gap-8 sm:flex-row sm:gap-12 min-h-[300px]">
+        {/* Details column */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-lg">Details</h3>
+          <div className="border-b border-slate-300 pb-3 mb-3" aria-hidden />
+          <ul>
+            <li className="text-md">Birth Year: {person.birth_year}</li>
+            <li className="text-md">Gender: {person.gender}</li>
+            <li className="text-md">Eye Color: {person.eye_color}</li>
+            <li className="text-md">Hair Color: {person.hair_color}</li>
+            <li className="text-md">Height: {person.height}</li>
+            <li className="text-md">Mass: {person.mass}</li>
+          </ul>
         </div>
-      )}
-    </div>
+
+        {/* Movies column */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-lg">Movies</h3>
+          <div className="border-b border-slate-200 pb-3 mb-3" aria-hidden />
+          {person.films.length > 0 ? (
+            <ul className="space-y-2 text-md">
+              {person.films.map((film) => (
+                <li key={film.id}>
+                  <Link
+                    to={`/film/${film.id}`}
+                    className="text-blue-600 underline hover:text-blue-800"
+                  >
+                    {film.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-slate-600">No movies</p>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

@@ -91,80 +91,32 @@ final class RedisQueryLogRepository implements QueryLogRepositoryInterface
         $this->logger->info('Computing statistics from Redis');
 
         $redis = Redis::connection()->client();
-
-        // Top person detail queries
-        $allDetailCounts = $redis->zrevrange($this->queryCountsKey, 0, -1, ['WITHSCORES' => true]);
-        $totalDetailQueries = (int) array_sum(array_map('intval', array_values($allDetailCounts ?? [])));
-
-
-        // Top search queries (searched people/films)
-        $topSearchRaw = $redis->zrevrange($this->searchCountsKey, 0, 4, ['WITHSCORES' => true]);
-        $allSearchCounts = $redis->zrevrange($this->searchCountsKey, 0, -1, ['WITHSCORES' => true]);
-        $totalSearchQueries = (int) array_sum(array_map('intval', array_values($allSearchCounts ?? [])));
-
-        $topSearchQueries = [];
-        foreach ($topSearchRaw as $countKey => $score) {
-            $pos = strpos($countKey, ':');
-            $searchType = $pos !== false ? substr($countKey, 0, $pos) : $countKey;
-            $query = $pos !== false ? substr($countKey, $pos + 1) : '';
-            $countInt = (int) $score;
-            $topSearchQueries[] = [
-                'search_type' => $searchType,
-                'query' => $query,
-                'count' => $countInt,
-                'percentage' => $totalSearchQueries > 0
-                    ? round(($countInt / $totalSearchQueries) * 100, 2)
-                    : 0.0,
-            ];
-        }
-
-        $allFilmCounts = $redis->zrevrange($this->filmQueryCountsKey, 0, -1, ['WITHSCORES' => true]);
-        $totalFilmQueries = (int) array_sum(array_map('intval', array_values($allFilmCounts ?? [])));
-
-        $totalQueries = $totalDetailQueries + $totalFilmQueries + $totalSearchQueries;
-
-        $totalResponseTime = 0.0;
-        $hourCounts = array_fill(0, 24, 0);
-        $entryCount = 0;
         $batchSize = 1000;
 
-        $queryLogLength = $redis->llen($this->queryLogKey);
-        for ($offset = 0; $offset < $queryLogLength; $offset += $batchSize) {
-            $entries = $redis->lrange($this->queryLogKey, $offset, $offset + $batchSize - 1);
-            foreach ($entries as $entry) {
-                $decoded = json_decode($entry, true, 512, JSON_THROW_ON_ERROR);
-                $totalResponseTime += $decoded['response_time_ms'];
-                $hourCounts[$decoded['hour']]++;
-                $entryCount++;
-            }
-        }
+        $totalDetailQueries = $this->sumSortedSetScores($redis, $this->queryCountsKey);
+        $totalSearchQueries = $this->sumSortedSetScores($redis, $this->searchCountsKey);
+        $totalFilmQueries = $this->sumSortedSetScores($redis, $this->filmQueryCountsKey);
+        $totalQueries = $totalDetailQueries + $totalFilmQueries + $totalSearchQueries;
 
-        $filmQueryLogLength = $redis->llen($this->filmQueryLogKey);
-        for ($offset = 0; $offset < $filmQueryLogLength; $offset += $batchSize) {
-            $entries = $redis->lrange($this->filmQueryLogKey, $offset, $offset + $batchSize - 1);
-            foreach ($entries as $entry) {
-                $decoded = json_decode($entry, true, 512, JSON_THROW_ON_ERROR);
-                $totalResponseTime += $decoded['response_time_ms'];
-                $hourCounts[$decoded['hour']]++;
-                $entryCount++;
-            }
-        }
+        $topSearchRaw = $redis->zrevrange($this->searchCountsKey, 0, 4, ['WITHSCORES' => true]);
+        $topSearchQueries = $this->parseTopSearchQueries($topSearchRaw ?? [], $totalSearchQueries);
 
-        $searchLogLength = $redis->llen($this->searchLogKey);
-        for ($offset = 0; $offset < $searchLogLength; $offset += $batchSize) {
-            $entries = $redis->lrange($this->searchLogKey, $offset, $offset + $batchSize - 1);
-            foreach ($entries as $entry) {
-                $decoded = json_decode($entry, true, 512, JSON_THROW_ON_ERROR);
-                $totalResponseTime += $decoded['response_time_ms'];
-                $hourCounts[$decoded['hour']]++;
-                $entryCount++;
-            }
-        }
+        $agg1 = $this->aggregateLogEntries($redis, $this->queryLogKey, $batchSize);
+        $agg2 = $this->aggregateLogEntries($redis, $this->filmQueryLogKey, $batchSize);
+        $agg3 = $this->aggregateLogEntries($redis, $this->searchLogKey, $batchSize);
 
-        $popularHours = [];
+        $totalResponseTime = $agg1['total_response_time'] + $agg2['total_response_time'] + $agg3['total_response_time'];
+        $entryCount = $agg1['entry_count'] + $agg2['entry_count'] + $agg3['entry_count'];
+
+        $hourCounts = array_fill(0, 24, 0);
         for ($h = 0; $h < 24; $h++) {
-            $popularHours[] = ['hour' => $h, 'total_count' => $hourCounts[$h]];
+            $hourCounts[$h] = $agg1['hour_counts'][$h] + $agg2['hour_counts'][$h] + $agg3['hour_counts'][$h];
         }
+
+        $popularHours = array_map(
+            fn(int $h) => ['hour' => $h, 'total_count' => $hourCounts[$h]],
+            range(0, 23),
+        );
 
         $averageResponseTime = $entryCount > 0 ? $totalResponseTime / $entryCount : 0.0;
 
@@ -206,6 +158,65 @@ final class RedisQueryLogRepository implements QueryLogRepositoryInterface
             computedAt: $data['computed_at'],
             topSearchQueries: $topSearchQueries,
         );
+    }
+
+    private function sumSortedSetScores(object $redis, string $key): int
+    {
+        $result = $redis->zrevrange($key, 0, -1, ['WITHSCORES' => true]);
+        return (int) array_sum(array_map('intval', array_values($result ?? [])));
+    }
+
+    /**
+     * @param \Redis $redis
+     * @return array{total_response_time: float, entry_count: int, hour_counts: array<int, int>}
+     */
+    private function aggregateLogEntries(object $redis, string $logKey, int $batchSize): array
+    {
+        $totalResponseTime = 0.0;
+        $hourCounts = array_fill(0, 24, 0);
+        $entryCount = 0;
+
+        // chuncking to not overload memory
+        $length = $redis->llen($logKey);
+        for ($offset = 0; $offset < $length; $offset += $batchSize) {
+            $entries = $redis->lrange($logKey, $offset, $offset + $batchSize - 1);
+            foreach ($entries as $entry) {
+                $decoded = json_decode($entry, true, 512, JSON_THROW_ON_ERROR);
+                $totalResponseTime += $decoded['response_time_ms'];
+                $hourCounts[$decoded['hour']]++;
+                $entryCount++;
+            }
+        }
+
+        return [
+            'total_response_time' => $totalResponseTime,
+            'entry_count' => $entryCount,
+            'hour_counts' => $hourCounts,
+        ];
+    }
+
+    /**
+     * @param  array<string, string>  $topSearchRaw  From zrevrange WITHSCORES (member => score)
+     * @return list<array{search_type: string, query: string, count: int, percentage: float}>
+     */
+    private function parseTopSearchQueries(array $topSearchRaw, int $totalSearchQueries): array
+    {
+        $result = [];
+        foreach ($topSearchRaw as $countKey => $score) {
+            $pos = strpos($countKey, ':');
+            $searchType = $pos !== false ? substr($countKey, 0, $pos) : $countKey;
+            $query = $pos !== false ? substr($countKey, $pos + 1) : '';
+            $countInt = (int) $score;
+            $result[] = [
+                'search_type' => $searchType,
+                'query' => $query,
+                'count' => $countInt,
+                'percentage' => $totalSearchQueries > 0
+                    ? round(($countInt / $totalSearchQueries) * 100, 2)
+                    : 0.0,
+            ];
+        }
+        return $result;
     }
 
     /**

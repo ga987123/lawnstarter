@@ -21,10 +21,9 @@ export function SearchForm({
   isLoading = false,
 }: SearchFormProps) {
   return (
-    <aside className="lg:max-w-sm">
-      <h1 className="mb-6 text-2xl font-bold text-slate-900">SWStarter</h1>
+    <aside className="min-w-[250px] bg-white p-6 rounded-sm shadow-md h-55 border border-[.5px]">
       <form onSubmit={onSubmit}>
-        <h2 className="mb-4 text-lg font-medium text-slate-700">
+        <h2 className="mb-6 text-md font-semibold">
           What are you searching for?
         </h2>
         <SearchTypeInput value={searchType} onChange={onSearchTypeChange} />
@@ -32,7 +31,8 @@ export function SearchForm({
         <Button
           type="submit"
           loading={isLoading}
-          className="w-full bg-slate-500 hover:bg-slate-600"
+          loadingText="SEARCHING..."
+          className="w-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)]"
         >
           SEARCH
         </Button>

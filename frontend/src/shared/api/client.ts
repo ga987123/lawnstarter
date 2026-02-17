@@ -1,10 +1,3 @@
-/**
- * Typed API client for the SWAPI Proxy backend.
- *
- * All requests go through the Vite dev proxy (/api -> backend),
- * so no CORS configuration is needed in development.
- */
-
 const BASE_URL = "/api";
 
 class ApiError extends Error {

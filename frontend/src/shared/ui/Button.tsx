@@ -2,11 +2,13 @@ import type { ButtonHTMLAttributes } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
+  loadingText?: string;
 }
 
 export function Button({
   children,
   loading,
+  loadingText = "Loading...",
   disabled,
   className = "",
   ...props
@@ -14,10 +16,10 @@ export function Button({
   return (
     <button
       disabled={disabled || loading}
-      className={`rounded-lg border border-slate-200 bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`rounded-full border border-[.5px] bg-[var(--color-brand)] px-5 py-2.5 text-sm font-bold text-white hover:bg-[var(--color-brand-hover)] disabled:opacity-50 ${className}`}
       {...props}
     >
-      {loading ? "Loading..." : children}
+      {loading ? loadingText : children}
     </button>
   );
 }

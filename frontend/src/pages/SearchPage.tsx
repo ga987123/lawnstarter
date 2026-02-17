@@ -8,9 +8,14 @@ import { SearchResults } from "./components/SearchResults";
 export { SearchType, type SearchTypeValue } from "./searchTypes";
 
 export function SearchPage() {
-  const [searchType, setSearchType] = useState<SearchTypeValue>(SearchType.People);
+  const [searchType, setSearchType] = useState<SearchTypeValue>(
+    SearchType.People,
+  );
   const [query, setQuery] = useState("");
-  const [submitted, setSubmitted] = useState<{ type: SearchTypeValue; query: string }>({
+  const [submitted, setSubmitted] = useState<{
+    type: SearchTypeValue;
+    query: string;
+  }>({
     type: SearchType.People,
     query: "",
   });
@@ -20,12 +25,9 @@ export function SearchPage() {
 
   const searchPeople = useSearchPeople(
     isPeople ? submitted.query : "",
-    isPeople
+    isPeople,
   );
-  const searchFilms = useSearchFilms(
-    isMovies ? submitted.query : "",
-    isMovies
-  );
+  const searchFilms = useSearchFilms(isMovies ? submitted.query : "", isMovies);
 
   const handleSearchTypeChange = (type: SearchTypeValue) => {
     setSearchType(type);
@@ -56,17 +58,19 @@ export function SearchPage() {
       : null;
 
   const items: SearchItem[] = isPeople
-    ? searchPeople.data?.pages.flatMap((p) => p.data) ?? []
+    ? (searchPeople.data?.pages.flatMap((p) => p.data) ?? [])
     : isMovies
-      ? searchFilms.data?.data ?? []
+      ? (searchFilms.data?.data ?? [])
       : [];
 
   const hasNextPage = isPeople ? (searchPeople.hasNextPage ?? false) : false;
-  const isFetchingNextPage = isPeople ? (searchPeople.isFetchingNextPage ?? false) : false;
+  const isFetchingNextPage = isPeople
+    ? (searchPeople.isFetchingNextPage ?? false)
+    : false;
   const fetchNextPage = isPeople ? searchPeople.fetchNextPage : undefined;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_2fr]">
+    <div className="grid gap-8 lg:grid-cols-[2fr_3fr]">
       <SearchForm
         searchType={searchType}
         onSearchTypeChange={handleSearchTypeChange}
