@@ -411,6 +411,7 @@ The backend image includes the PCOV extension for code coverage. Rebuild the ima
 ```bash
 docker compose build backend
 ```
+<img width="1679" height="1009" alt="image" src="https://github.com/user-attachments/assets/3e3773c5-0e42-414f-83df-269490fa59d9" />
 
 Generate a coverage report:
 
