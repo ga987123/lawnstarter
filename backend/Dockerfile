@@ -7,10 +7,10 @@ RUN apk add --no-cache \
     linux-headers \
     && docker-php-ext-install zip pcntl sockets
 
-# Install Redis extension
+# Install Redis and PCOV (code coverage) extensions
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
+    && pecl install redis pcov \
+    && docker-php-ext-enable redis pcov \
     && apk del .build-deps
 
 # Install Composer

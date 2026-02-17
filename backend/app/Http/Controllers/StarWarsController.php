@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Application\Services\StarwarsService;
+use App\Application\Services\StarwarsServiceInterface;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 final class StarWarsController
 {
     public function __construct(
-        private readonly StarwarsService $starwarsService,
+        private readonly StarwarsServiceInterface $starwarsService,
     ) {}
 
     public function getPerson(int $id): JsonResponse

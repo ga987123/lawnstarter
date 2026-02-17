@@ -1,0 +1,14 @@
+default:
+  suites:
+    default:
+      paths:
+        - "%paths.base%/tests/Acceptance/features"
+      contexts:
+        - Tests\Acceptance\ApiContext:
+            parameters:
+              base_url: 'http://localhost:8080'
+  extensions:
+    Behat\Behat\Context\ServiceContainer\ContextExtension: {}
+  formatters:
+    pretty:
+      output_path: null

@@ -10,6 +10,10 @@ use App\Application\Events\SearchQueryExecuted;
 use App\Application\Listeners\RecordFilmQueryMetrics;
 use App\Application\Listeners\RecordQueryMetrics;
 use App\Application\Listeners\RecordSearchMetrics;
+use App\Application\Services\StatisticsService;
+use App\Application\Services\StatisticsServiceInterface;
+use App\Application\Services\StarwarsService;
+use App\Application\Services\StarwarsServiceInterface;
 use App\Domain\Contracts\AppLoggerInterface;
 use App\Domain\Statistics\Contracts\QueryLogRepositoryInterface;
 use App\Domain\Swapi\Contracts\SwapiClientInterface;
@@ -38,6 +42,8 @@ final class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(QueryLogRepositoryInterface::class, RedisQueryLogRepository::class);
         $this->app->bind(AppLoggerInterface::class, LaravelAppLogger::class);
+        $this->app->bind(StarwarsServiceInterface::class, StarwarsService::class);
+        $this->app->bind(StatisticsServiceInterface::class, StatisticsService::class);
     }
 
     public function boot(): void

@@ -4,6 +4,40 @@ PHP 8.4 + Laravel 12 API-only application that proxies the Star Wars API (swapi.
 
 ## Architecture
 
+### How the API flow works
+
+```mermaid
+sequenceDiagram
+  participant Browser as Browser / Frontend
+  participant Nginx as Nginx (port 8080)
+  participant Backend as Laravel Backend
+  participant SWAPI as swapi.tech API
+  participant Redis as Redis
+  participant Worker as Queue Worker
+
+  Browser->>Nginx: GET /api/swapi/people/1 (or /api/health, /api/statistics)
+  Nginx->>Backend: PHP-FPM request
+  Backend->>Backend: Route to StarWarsController / HealthController / StatisticsController
+
+  alt SWAPI proxy (people, films)
+    Backend->>SWAPI: HTTP GET (people, films, search)
+    SWAPI-->>Backend: JSON response
+    Backend->>Backend: Normalize (StarwarsService), dispatch events
+    Backend->>Redis: Record query metrics (via listener / job)
+    Backend-->>Nginx: JSON response (data + meta)
+  else Health or Statistics
+    Backend->>Redis: Read cache (statistics) or none (health)
+    Backend-->>Nginx: JSON response
+  end
+
+  Nginx-->>Browser: JSON response
+  Worker->>Redis: Process metrics jobs (RecomputeStatisticsJob, etc.)
+```
+
+- **Frontend** (Vite app) calls `/api/*`; in dev this is proxied to the backend (e.g. `localhost:8080`).
+- **Nginx** listens on port 8080 and forwards requests to the Laravel backend (PHP-FPM).
+- **Backend** serves health and statistics from the app (and Redis); people/films requests are proxied to **swapi.tech**, normalized, then returned. Metrics are written to **Redis** and processed asynchronously by **Queue Worker** (RabbitMQ).
+
 ### Layer Responsibilities
 
 | Layer          | Responsibility                                           |
@@ -332,28 +366,35 @@ Both listeners implement `ShouldQueue`, meaning they are pushed to the queue (Ra
 
 ## Testing
 
-Tests use **Pest** (PHPUnit wrapper) with mocked dependencies.
+Tests use **Pest** (PHPUnit wrapper) with shared mocks in `tests/Mocks/` and are split into:
+
+- **Unit** (`tests/Unit/`): Application (services, commands, listeners, jobs), Domain (DTOs), Infrastructure (CircuitBreaker, RedisQueryLogRepository, SwapiResponseWrapper), Http (ApiResponse, controllers, middleware). Dependencies are mocked.
+- **Feature** (`tests/Feature/`): HTTP integration by endpoint (API root, health, Swagger, SwAPI people/films, statistics). Real routes are called; external boundaries (e.g. `SwapiClientInterface`, `QueryLogRepositoryInterface`) are mocked.
 
 ```bash
 # Run all tests
 docker compose exec backend php artisan test
 
-# Run specific test
-docker compose exec backend ./vendor/bin/pest --filter="health"
+# Run unit or feature only
+docker compose exec backend php artisan test tests/Unit
+docker compose exec backend php artisan test tests/Feature
 ```
 
-## Code Quality
+### Code coverage
+
+The backend image includes the PCOV extension for code coverage. Rebuild the image if you get "Code coverage driver not available":
 
 ```bash
-# Format code (Laravel Pint)
-docker compose exec backend ./vendor/bin/pint
-
-# Static analysis (PHPStan level 8)
-docker compose exec backend ./vendor/bin/phpstan analyse
-
-# Rector (dry-run)
-docker compose exec backend ./vendor/bin/rector process --dry-run
+docker compose build backend
 ```
+
+Generate a coverage report:
+
+```bash
+docker compose exec backend php artisan test --coverage
+```
+
+HTML report is written to `build/coverage/html/` (see `phpunit.xml` `<source>`). The `build/` directory is in `.gitignore`.
 
 ## Configuration
 

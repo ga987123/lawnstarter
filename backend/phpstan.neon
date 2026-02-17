@@ -1,9 +1,11 @@
 includes:
     - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+    - phpstan-tests-baseline.neon
 
 parameters:
     paths:
         - app
+        - tests
     level: 8
     excludePaths:
         - app/Infrastructure/Http/Requests/*

@@ -14,7 +14,7 @@ use App\Domain\Swapi\DTOs\PaginatedResultDto;
 use App\Domain\Swapi\DTOs\PersonDto;
 use App\Domain\Swapi\DTOs\RelatedResourceDto;
 
-final class StarwarsService
+final class StarwarsService implements StarwarsServiceInterface
 {
     public function __construct(
         private readonly SwapiClientInterface $client,

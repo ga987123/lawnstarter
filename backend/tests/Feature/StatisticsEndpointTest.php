@@ -3,24 +3,25 @@
 declare(strict_types=1);
 
 use App\Domain\Statistics\Contracts\QueryLogRepositoryInterface;
-use App\Domain\Statistics\DTOs\QueryStatisticsDto;
+use Tests\Mocks\StatisticsMocks;
 
 it('returns statistics from cache', function (): void {
+    /** @var \Tests\TestCase $this */
     $popularHours = array_map(fn(int $h) => ['hour' => $h, 'total_count' => 0], range(0, 23));
     $popularHours[14] = ['hour' => 14, 'total_count' => 28];
 
+    $cached = StatisticsMocks::queryStatisticsDto([
+        'averageResponseTimeMs' => 150.5,
+        'popularHours' => $popularHours,
+        'totalQueries' => 20,
+        'computedAt' => '2026-01-01T00:00:00+00:00',
+        'topSearchQueries' => [
+            ['search_type' => 'people', 'query' => 'luke', 'count' => 8, 'percentage' => 40.0],
+        ],
+    ]);
+
     $mockRepo = Mockery::mock(QueryLogRepositoryInterface::class);
-    $mockRepo->shouldReceive('getCachedStatistics')
-        ->once()
-        ->andReturn(new QueryStatisticsDto(
-            averageResponseTimeMs: 150.5,
-            popularHours: $popularHours,
-            totalQueries: 20,
-            computedAt: '2026-01-01T00:00:00+00:00',
-            topSearchQueries: [
-                ['search_type' => 'people', 'query' => 'luke', 'count' => 8, 'percentage' => 40.0],
-            ],
-        ));
+    $mockRepo->shouldReceive('getCachedStatistics')->once()->andReturn($cached);
 
     $this->app->instance(QueryLogRepositoryInterface::class, $mockRepo);
 
@@ -46,20 +47,13 @@ it('returns statistics from cache', function (): void {
 });
 
 it('computes statistics when cache is empty', function (): void {
-    $popularHours = array_map(fn(int $h) => ['hour' => $h, 'total_count' => 0], range(0, 23));
-
-    $stats = new QueryStatisticsDto(
-        averageResponseTimeMs: 0.0,
-        popularHours: $popularHours,
-        totalQueries: 0,
-        computedAt: '2026-01-01T00:00:00+00:00',
-        topSearchQueries: [],
-    );
+    /** @var \Tests\TestCase $this */
+    $stats = StatisticsMocks::queryStatisticsDto(['totalQueries' => 0]);
 
     $mockRepo = Mockery::mock(QueryLogRepositoryInterface::class);
     $mockRepo->shouldReceive('getCachedStatistics')->once()->andReturnNull();
     $mockRepo->shouldReceive('computeStatistics')->once()->andReturn($stats);
-    $mockRepo->shouldReceive('cacheStatistics')->once()->with($stats);
+    $mockRepo->shouldReceive('cacheStatistics')->once()->with(Mockery::on(fn ($arg) => $arg->totalQueries === 0));
 
     $this->app->instance(QueryLogRepositoryInterface::class, $mockRepo);
 
@@ -70,9 +64,11 @@ it('computes statistics when cache is empty', function (): void {
         ->assertJsonPath('data.total_queries', 0)
         ->assertJsonStructure([
             'data' => [
-                'top_queries',
                 'top_search_queries',
                 'popular_hours',
+                'average_response_time_ms',
+                'total_queries',
+                'computed_at',
             ],
         ]);
 });

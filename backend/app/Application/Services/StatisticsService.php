@@ -7,7 +7,7 @@ namespace App\Application\Services;
 use App\Domain\Statistics\Contracts\QueryLogRepositoryInterface;
 use App\Domain\Statistics\DTOs\QueryStatisticsDto;
 
-final class StatisticsService
+final class StatisticsService implements StatisticsServiceInterface
 {
     public function __construct(
         private readonly QueryLogRepositoryInterface $repository,

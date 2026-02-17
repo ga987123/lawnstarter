@@ -1,4 +1,4 @@
-.PHONY: up down logs backend-shell frontend-shell test lint fresh build
+.PHONY: up down logs backend-shell frontend-shell test test-acceptance lint fresh build
 
 # ──────────────────────────────────────────────
 # Docker Compose
@@ -30,5 +30,5 @@ test: test-backend test-frontend
 test-backend:
 	docker compose exec backend php artisan test
 
-test-frontend:
-	docker compose exec frontend npm run test -- --run
+test-acceptance:
+	docker compose exec -e ACCEPTANCE_BASE_URL=http://nginx:80 backend ./vendor/bin/behat

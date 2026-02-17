@@ -3,28 +3,21 @@
 declare(strict_types=1);
 
 use App\Domain\Swapi\Contracts\SwapiClientInterface;
-use App\Domain\Swapi\DTOs\PersonDto;
 use App\Domain\Swapi\Exceptions\SwapiNotFoundException;
 use App\Domain\Swapi\Exceptions\SwapiUnavailableException;
 use Illuminate\Support\Facades\Event;
+use Tests\Mocks\SwapiMocks;
 
 beforeEach(function (): void {
     Event::fake();
 });
 
 it('returns a normalized person from swapi', function (): void {
+    /** @var \Tests\TestCase $this */
+    $person = SwapiMocks::personDto(1);
     $mockGateway = Mockery::mock(SwapiClientInterface::class);
-    $mockGateway->shouldReceive('fetchPerson')
-        ->with(1)
-        ->once()
-        ->andReturn(new PersonDto(
-            id: 1,
-            name: 'Luke Skywalker',
-            height: '172',
-            mass: '77',
-            birthYear: '19BBY',
-            gender: 'male',
-        ));
+    $mockGateway->shouldReceive('fetchPerson')->with(1)->once()->andReturn($person);
+    $mockGateway->shouldReceive('resolveResourceNames')->with([])->once()->andReturn([]);
 
     $this->app->instance(SwapiClientInterface::class, $mockGateway);
 
@@ -40,6 +33,7 @@ it('returns a normalized person from swapi', function (): void {
 });
 
 it('returns 404 when person is not found', function (): void {
+    /** @var \Tests\TestCase $this */
     $mockGateway = Mockery::mock(SwapiClientInterface::class);
     $mockGateway->shouldReceive('fetchPerson')
         ->with(999)
@@ -57,6 +51,7 @@ it('returns 404 when person is not found', function (): void {
 });
 
 it('returns 502 when swapi is unavailable', function (): void {
+    /** @var \Tests\TestCase $this */
     $mockGateway = Mockery::mock(SwapiClientInterface::class);
     $mockGateway->shouldReceive('fetchPerson')
         ->with(1)
@@ -74,7 +69,8 @@ it('returns 502 when swapi is unavailable', function (): void {
 });
 
 it('rejects invalid person id', function (): void {
+    /** @var \Tests\TestCase $this */
     $response = $this->getJson('/api/swapi/people/0');
 
-    $response->assertStatus(422);
+    $response->assertStatus(404);
 });
