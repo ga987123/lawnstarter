@@ -187,6 +187,7 @@ npm run test:coverage # With coverage (report in coverage/)
 ```
 
 Coverage is configured in `vite.config.ts` via `@vitest/coverage-v8`; the `coverage/` directory is gitignored.
+<img width="1674" height="942" alt="image" src="https://github.com/user-attachments/assets/fa59861d-8148-447f-9c28-9c8a46faccd7" />
 
 ## Code quality
 
