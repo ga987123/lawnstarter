@@ -39,55 +39,6 @@ From the **project root** (with Docker):
 
 The app uses a clear separation between app bootstrap, pages, shared UI/API, and SWAPI services.
 
-```mermaid
-graph TB
-  subgraph app ["app/"]
-    Main["main.tsx"]
-    App["App.tsx"]
-    Providers["providers.tsx"]
-  end
-
-  subgraph pages ["pages/"]
-    SearchPage["SearchPage"]
-    PersonDetailPage["PersonDetailPage"]
-    FilmDetailPage["FilmDetailPage"]
-    subgraph pageComponents ["components/"]
-      SearchForm["SearchForm"]
-      SearchResults["SearchResults"]
-      MovieCard["MovieCard"]
-      PersonCard["PersonCard"]
-    end
-  end
-
-  subgraph services ["services/swapi/"]
-    Queries["api/queries.ts"]
-  end
-
-  subgraph shared ["shared/"]
-    ApiClient["api/client.ts"]
-    ApiTypes["api/types.ts"]
-    Button["ui/Button"]
-    BrandLoader["ui/BrandLoader"]
-    RelatedLinks["ui/RelatedLinks"]
-  end
-
-  Main --> App
-  App --> Providers
-  App --> SearchPage
-  App --> PersonDetailPage
-  App --> FilmDetailPage
-
-  SearchPage --> SearchForm
-  SearchPage --> SearchResults
-  SearchResults --> MovieCard
-  SearchResults --> PersonCard
-  PersonDetailPage --> PersonCard
-  FilmDetailPage --> MovieCard
-
-  Queries --> ApiClient
-  Queries --> ApiTypes
-  ApiTypes --> shared
-```
 
 ### Module boundaries
 
